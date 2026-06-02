@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTrips } from './hooks/useTrips'
 import { useTheme } from './hooks/useTheme'
+import { useAuth } from './hooks/useAuth'
 import { useSchengen } from './hooks/useSchengen'
 import Header from './components/Header/Header'
 import Dashboard from './components/Dashboard/Dashboard'
@@ -13,7 +14,8 @@ import type { TripEntry } from './types'
 import i18n from './i18n'
 
 function App() {
-  const { trips, addTrip, updateTrip, deleteTrip, exportTrips, importTrips } = useTrips()
+  const { user, authLoading, signInWithGoogle, signOut } = useAuth()
+  const { trips, syncing, addTrip, updateTrip, deleteTrip, exportTrips, importTrips } = useTrips(user)
   const { theme, language, residencyStatus, setTheme, setLanguage, setResidencyStatus } = useTheme()
   const status = useSchengen(trips)
 
@@ -55,21 +57,22 @@ function App() {
         onExport={exportTrips}
         onImport={importTrips}
         onSettingsOpen={() => setSettingsOpen(true)}
+        user={user}
+        authLoading={authLoading}
+        syncing={syncing}
+        onSignIn={signInWithGoogle}
+        onSignOut={signOut}
         tripCount={trips.length}
       />
 
-      {/* inert prevents background interaction when modal is open */}
       <main
         className="max-w-4xl mx-auto px-4 pb-16 pt-6 space-y-6"
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {...(formOpen || settingsOpen ? ({ inert: true } as any) : {})}
       >
         <Dashboard status={status} trips={trips} residencyStatus={residencyStatus} />
-
         <TripChecker trips={trips} onAddTrip={addTrip} residencyStatus={residencyStatus} />
-
         <Timeline trips={trips} />
-
         <TripList
           trips={trips}
           onAdd={() => setFormOpen(true)}

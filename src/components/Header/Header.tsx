@@ -1,6 +1,8 @@
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { User } from '@supabase/supabase-js'
 import type { AppSettings } from '../../types'
+import AuthButton from '../AuthButton/AuthButton'
 
 type Theme = AppSettings['theme']
 type Language = AppSettings['language']
@@ -13,6 +15,11 @@ interface Props {
   onExport: () => void
   onImport: (file: File) => Promise<number>
   onSettingsOpen: () => void
+  user: User | null
+  authLoading: boolean
+  syncing: boolean
+  onSignIn: () => void
+  onSignOut: () => void
   tripCount: number
 }
 
@@ -32,6 +39,11 @@ export default function Header({
   onExport,
   onImport,
   onSettingsOpen,
+  user,
+  authLoading,
+  syncing,
+  onSignIn,
+  onSignOut,
   tripCount,
 }: Props) {
   const { t } = useTranslation()
@@ -69,35 +81,39 @@ export default function Header({
         zIndex: 50,
       }}
     >
-      <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        {/* Left: logo + trip count */}
+        <div className="flex items-center gap-2 shrink-0">
           <span className="text-xl">🌍</span>
-          <span
-            className="font-semibold text-base"
-            style={{ color: 'var(--color-text)' }}
-          >
+          <span className="font-semibold text-base hidden sm:inline" style={{ color: 'var(--color-text)' }}>
             {t('appName')}
           </span>
           {tripCount > 0 && (
             <span
               className="text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{
-                background: 'var(--color-accent)',
-                color: '#fff',
-                opacity: 0.85,
-              }}
+              style={{ background: 'var(--color-accent)', color: '#fff', opacity: 0.85 }}
             >
               {tripCount}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right: auth + controls */}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* Auth button — most prominent action */}
+          <AuthButton
+            user={user}
+            authLoading={authLoading}
+            syncing={syncing}
+            onSignIn={onSignIn}
+            onSignOut={onSignOut}
+          />
+
+          {/* Separator */}
+          <div style={{ width: 1, height: '1.25rem', background: 'var(--color-border)' }} />
+
           {/* Language toggle */}
-          <div
-            className="flex rounded-lg overflow-hidden"
-            style={{ border: '1px solid var(--color-border)' }}
-          >
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
             {(['en', 'ru'] as Language[]).map((lang) => (
               <button
                 key={lang}
@@ -120,12 +136,7 @@ export default function Header({
             onClick={cycleTheme}
             title={t(`settings.theme${theme.charAt(0).toUpperCase() + theme.slice(1)}` as never)}
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors text-base"
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--color-border)',
-              cursor: 'pointer',
-              color: 'var(--color-text)',
-            }}
+            style={{ background: 'transparent', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-text)' }}
           >
             {THEME_ICONS[theme]}
           </button>
@@ -135,12 +146,7 @@ export default function Header({
             onClick={onExport}
             title={t('export.export')}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors"
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--color-border)',
-              cursor: 'pointer',
-              color: 'var(--color-text-muted)',
-            }}
+            style={{ background: 'transparent', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-text-muted)' }}
           >
             ↓
           </button>
@@ -150,12 +156,7 @@ export default function Header({
             onClick={handleImportClick}
             title={t('export.import')}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors"
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--color-border)',
-              cursor: 'pointer',
-              color: 'var(--color-text-muted)',
-            }}
+            style={{ background: 'transparent', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-text-muted)' }}
           >
             ↑
           </button>
@@ -165,23 +166,12 @@ export default function Header({
             onClick={onSettingsOpen}
             title={t('settings.title')}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors"
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--color-border)',
-              cursor: 'pointer',
-              color: 'var(--color-text-muted)',
-            }}
+            style={{ background: 'transparent', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-text-muted)' }}
           >
             ⚙
           </button>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            onChange={handleFileChange}
-            style={{ display: 'none' }}
-          />
+          <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} style={{ display: 'none' }} />
         </div>
       </div>
     </header>
