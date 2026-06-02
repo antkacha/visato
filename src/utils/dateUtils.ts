@@ -1,5 +1,5 @@
 import { format, parseISO } from 'date-fns'
-import { enUS, ru } from 'date-fns/locale'
+import { enUS, ru, type Locale } from 'date-fns/locale'
 
 const LOCALES: Record<string, Locale> = { en: enUS, ru }
 

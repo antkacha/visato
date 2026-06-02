@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next'
 import type { TripEntry } from '../../types'
-import { formatDateShort } from '../../utils/dateUtils'
 import { parseISO, addDays, differenceInDays, format } from 'date-fns'
 import { COUNTRY_FLAGS } from '../../constants/countries'
 
@@ -25,10 +24,9 @@ function countryColor(slug: string): string {
 }
 
 const TODAY_ISO = format(new Date(), 'yyyy-MM-dd')
-const WINDOW_DAYS = 240 // show 180 past + 60 future
 
 export default function Timeline({ trips }: Props) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
 
   const rangeStart = addDays(parseISO(TODAY_ISO), -180)
   const rangeEnd = addDays(parseISO(TODAY_ISO), 60)
