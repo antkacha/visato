@@ -371,22 +371,23 @@ export default function TripForm({ open, trip, existingTrips, initialDates, onSa
           position: 'fixed', inset: 0,
           zIndex: 50,
           display: 'flex',
-          alignItems: 'flex-end',
+          alignItems: 'center',
           justifyContent: 'center',
           pointerEvents: 'none',
+          padding: '1rem',
         }}
       >
         <motion.div
-          initial={shouldReduceMotion ? {} : { opacity: 0, y: 32 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.22, ease: 'easeOut' }}
+          initial={shouldReduceMotion ? {} : { opacity: 0, scale: 0.97, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
           style={{
             pointerEvents: 'auto',
             background: 'var(--color-surface-solid)',
             border: '1px solid var(--color-border)',
-            borderRadius: '1rem 1rem 0 0',
+            borderRadius: '1rem',
             padding: '1.5rem',
-            width: '100vw',
+            width: '100%',
             maxWidth: '480px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
             maxHeight: '90dvh',
