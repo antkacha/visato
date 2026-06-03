@@ -84,13 +84,16 @@ export default function Header({
         {/* Left: logo + trip count */}
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-xl">🌍</span>
-          <span className="font-semibold text-base hidden sm:inline" style={{ color: 'var(--color-text)' }}>
-            {t('appName')}
+          <span
+            className="font-bold text-base hidden sm:inline"
+            style={{ color: '#2DBF8A', letterSpacing: '-0.01em' }}
+          >
+            Visato
           </span>
           {tripCount > 0 && (
             <span
               className="text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{ background: 'var(--color-accent)', color: '#fff', opacity: 0.85 }}
+              style={{ background: 'rgba(45,191,138,0.15)', color: '#1A7A59' }}
             >
               {tripCount}
             </span>
