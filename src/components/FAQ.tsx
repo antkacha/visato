@@ -76,7 +76,7 @@ export default function FAQ() {
   const { t } = useTranslation()
   const [openIdx, setOpenIdx] = useState<number | null>(null)
 
-  const ITEMS = Array.from({ length: 9 }, (_, i) => ({
+  const ITEMS = Array.from({ length: 6 }, (_, i) => ({
     q: t(`faq.q${i + 1}`),
     a: t(`faq.a${i + 1}`),
   }))

@@ -118,16 +118,10 @@
     "a3": "Yes. Both the entry day and the exit day are counted as full Schengen days. A trip arriving on January 1 and leaving on January 5 uses 5 days, not 4.",
     "q4": "What happens if I overstay?",
     "a4": "Overstaying is a serious violation. Consequences can include a multi-year re-entry ban across all Schengen countries, fines, deportation, and difficulties obtaining future visas or residency permits.",
-    "q5": "I have EU residency — do limits apply to me?",
-    "a5": "If you hold a valid EU Permanent Residency permit (ПМЖ), the 90/180 rule typically does not apply within your country of residence. Mark yourself as EU PR in Settings and Visato will stop showing Schengen limits. Always verify with your local immigration authority for travel to other Schengen states.",
-    "q6": "What is Temporary Protection status?",
-    "a6": "Temporary Protection (TPS / Тимчасовий захист) is an EU emergency mechanism granting displaced persons protection status. Holders are generally exempt from standard Schengen day limits in their host country. Select TPS in Settings to hide Schengen tracking.",
-    "q7": "Can I track non-Schengen trips too?",
-    "a7": "Yes. Visato tracks multiple travel zones: United Kingdom (180 days / 365), United States, Turkey, and UAE (90 days / 180), Thailand (60 days per entry), Georgia (365 days / year), and any other country as a simple travel log with no limits.",
-    "q8": "How is the 180-day window calculated?",
-    "a8": "The 180-day window is a rolling lookback: for any given day, Visato counts all days spent in Schengen during the preceding 180 days (including today). It checks every single day of your planned trip to catch violations that might occur mid-trip, not just at the start.",
-    "q9": "What's the difference between Schengen and EU?",
-    "a9": "The EU and Schengen Area are two overlapping but distinct groupings. Ireland is in the EU but not Schengen. Norway, Iceland, Switzerland, and Liechtenstein are in Schengen but not the EU. For the 90/180 rule, only Schengen membership matters."
+    "q5": "How is the 180-day window calculated?",
+    "a5": "The 180-day window is a rolling lookback: for any given day, Visato counts all days spent in Schengen during the preceding 180 days (including today). It checks every single day of your planned trip to catch violations that might occur mid-trip, not just at the start.",
+    "q6": "What's the difference between Schengen and EU?",
+    "a6": "The EU and Schengen Area are two overlapping but distinct groupings. Ireland is in the EU but not Schengen. Norway, Iceland, Switzerland, and Liechtenstein are in Schengen but not the EU. For the 90/180 rule, only Schengen membership matters."
   },
   "zones": {
     "uk":       "United Kingdom",
