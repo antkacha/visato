@@ -53,6 +53,8 @@ export function getDaysUsedInWindow(
 /**
  * Upcoming dates when past Schengen days fall out of the 180-day window,
  * freeing capacity. A day D spent in Schengen exits the window on D+180.
+ * totalAfter is computed via getDaysUsedInWindow so it correctly accounts
+ * for ongoing trips that keep adding days to future windows.
  */
 export function getResetEvents(trips: TripEntry[], todayISO: string): ResetEvent[] {
   const today = parse(todayISO)
@@ -61,7 +63,7 @@ export function getResetEvents(trips: TripEntry[], todayISO: string): ResetEvent
   for (const trip of trips.filter((t) => t.entryDate <= todayISO)) {
     const entry = parse(trip.entryDate)
     const exit = parse(resolveExit(trip, todayISO))
-    // Only past/current days contribute to future releases
+    // Only days that have already occurred can roll off the window in the future
     const rangeEnd = min([exit, today])
     if (entry > rangeEnd) continue
 
@@ -75,13 +77,15 @@ export function getResetEvents(trips: TripEntry[], todayISO: string): ResetEvent
     }
   }
 
-  let runningUsed = getDaysUsedInWindow(trips, todayISO)
   return [...releaseCounts.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, released]) => {
-      runningUsed = Math.max(0, runningUsed - released)
-      return { date, daysReleased: released, totalAfter: 90 - runningUsed }
-    })
+    .map(([date, daysReleased]) => ({
+      date,
+      daysReleased,
+      // getDaysUsedInWindow on the future date accounts for ongoing trips
+      // that continue adding days, giving an accurate available balance.
+      totalAfter: Math.max(0, 90 - getDaysUsedInWindow(trips, date)),
+    }))
 }
 
 /**
@@ -128,11 +132,14 @@ export function validatePlannedTrip(
 
 /**
  * Maximum consecutive safe days starting from startISO given existing trips.
+ * Uses getDaysUsedInWindow directly so all three dashboard values share
+ * the same core calculation.
  */
 export function getMaxConsecutiveDays(existing: TripEntry[], startISO: string): number {
   for (let i = 0; i < 90; i++) {
-    const exitISO = toISO(addDays(parse(startISO), i))
-    if (!validatePlannedTrip(existing, startISO, exitISO).isValid) return i
+    const dayISO = toISO(addDays(parse(startISO), i))
+    const hypothetical: TripEntry = { id: '__check', entryDate: startISO, exitDate: dayISO, country: '' }
+    if (getDaysUsedInWindow([...existing, hypothetical], dayISO) > 90) return i
   }
   return 90
 }
