@@ -35,7 +35,7 @@ const THEME = {
   },
   light: {
     bg: '#F0FAF6',
-    ocean: '#E8F5F0',
+    ocean: '#A8D5E8',
     visited: '#2DBF8A',
     unvisited: '#C8D6D0',
     border: '#FFFFFF',
@@ -60,6 +60,20 @@ export default function MapPage({ trips }: Props) {
   const [countries, setCountries] = useState<GeoFeature[]>([])
   const [, setHovered] = useState<GeoFeature | null>(null)
 
+  // Solid-color data URL used as globeImageUrl to override the default Earth texture.
+  // Passing a truthy data URL is the only reliable way to prevent three-globe from
+  // falling back to its built-in dark satellite image.
+  const [oceanDataUrl, setOceanDataUrl] = useState('')
+  useEffect(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 2
+    canvas.height = 1
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = colors.ocean
+    ctx.fillRect(0, 0, 2, 1)
+    setOceanDataUrl(canvas.toDataURL('image/png'))
+  }, [colors.ocean])
+
   // Load world atlas
   useEffect(() => {
     import('world-atlas/countries-110m.json').then((mod) => {
@@ -82,12 +96,46 @@ export default function MapPage({ trips }: Props) {
   }, [])
 
   const applyGlobeMaterial = useCallback((g: any) => {
-    const mat = g.globeMaterial()
-    mat.map = null            // Remove satellite texture map
-    mat.needsUpdate = true
-    mat.color.set('#000000') // Black diffuse so lights have no effect
-    mat.emissive.set(colors.ocean)
-    mat.emissiveIntensity = 1
+    // Try globeMaterial() API first
+    try {
+      const mat = g.globeMaterial()
+      mat.map = null
+      mat.color.set(colors.ocean)
+      mat.emissive.set(colors.ocean)
+      mat.emissiveIntensity = 1
+      mat.needsUpdate = true
+    } catch (_) { /* ignore */ }
+
+    // Also find the sphere mesh directly in the scene tree as a fallback
+    const applyToMesh = (obj: any) => {
+      if (obj.isMesh && obj.geometry?.parameters?.phiLength !== undefined) return // skip polygon meshes
+      if (obj.isMesh && obj.material) {
+        const mat = obj.material
+        mat.map = null
+        mat.color.set(colors.ocean)
+        mat.emissive.set(colors.ocean)
+        mat.emissiveIntensity = 1
+        mat.needsUpdate = true
+      }
+      obj.children?.forEach(applyToMesh)
+    }
+    try {
+      const scene = g.scene()
+      // Remove DirectionalLights while we're here
+      scene.children
+        .filter((c: any) => c.type === 'DirectionalLight')
+        .forEach((c: any) => scene.remove(c))
+      // Apply to the first Mesh child (globe sphere)
+      const sphereMesh = scene.children.find((c: any) => c.isMesh)
+      if (sphereMesh) {
+        const mat = sphereMesh.material
+        mat.map = null
+        mat.color.set(colors.ocean)
+        mat.emissive.set(colors.ocean)
+        mat.emissiveIntensity = 1
+        mat.needsUpdate = true
+      }
+    } catch (_) { /* ignore */ }
   }, [colors.ocean])
 
   // Set ocean color and auto-rotation on globe ready
@@ -97,19 +145,15 @@ export default function MapPage({ trips }: Props) {
     const g = globe as any
 
     applyGlobeMaterial(g)
+    // Re-apply after a tick to catch any async texture loads that might overwrite our settings
+    setTimeout(() => applyGlobeMaterial(g), 100)
+    setTimeout(() => applyGlobeMaterial(g), 500)
 
-    // Clear scene and renderer backgrounds
-    const scene = g.scene()
-    scene.background = null
-    g.renderer().setClearColor(0x000000, 0)
-
-    // Remove DirectionalLights so polygons are also evenly lit
-    for (let i = scene.children.length - 1; i >= 0; i--) {
-      if (scene.children[i].type === 'DirectionalLight') scene.remove(scene.children[i])
-    }
-    scene.children.forEach((c: any) => {
-      if (c.type === 'AmbientLight') c.intensity = 1.5
-    })
+    // Clear scene/renderer background
+    try {
+      g.scene().background = null
+      g.renderer().setClearColor(0x000000, 0)
+    } catch (_) { /* ignore */ }
 
     const ctrl = g.controls()
     ctrl.autoRotate = true
@@ -228,7 +272,7 @@ export default function MapPage({ trips }: Props) {
             width={dims.w}
             height={globeH}
             backgroundColor="rgba(0,0,0,0)"
-            globeImageUrl={null as unknown as string}
+            globeImageUrl={oceanDataUrl || (null as unknown as string)}
             showAtmosphere={false}
             polygonsData={countries}
             polygonCapColor={getCapColor}
