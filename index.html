@@ -34,10 +34,7 @@
       // No-FOUC: apply theme before any CSS loads
       try {
         var s = JSON.parse(localStorage.getItem('schengen_settings') || '{}');
-        var theme = s.theme || 'light';
-        if (theme === 'system') {
-          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
+        var theme = s.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         document.documentElement.setAttribute('data-theme', theme);
       } catch (_) {}
     </script>

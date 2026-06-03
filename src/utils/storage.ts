@@ -1,12 +1,19 @@
 import type { TripEntry, AppSettings } from '../types'
 
-
 const TRIPS_KEY = 'schengen_trips'
 const SETTINGS_KEY = 'schengen_settings'
 const MIGRATION_V2_KEY = 'schengen_migration_v2'
 const MIGRATION_V3_KEY = 'schengen_migration_v3'
 
 const DEFAULT_SETTINGS: AppSettings = { theme: 'light', language: 'en' }
+
+function getSystemTheme(): 'light' | 'dark' {
+  try {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  } catch {
+    return 'light'
+  }
+}
 
 export function loadTrips(): TripEntry[] {
   try {
@@ -27,7 +34,7 @@ export function saveTrips(trips: TripEntry[]): void {
 export function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
-    if (!raw) return { ...DEFAULT_SETTINGS }
+    if (!raw) return { ...DEFAULT_SETTINGS, theme: getSystemTheme() }
     const settings: AppSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
     if (!localStorage.getItem(MIGRATION_V2_KEY)) {
       localStorage.setItem(MIGRATION_V2_KEY, '1')
