@@ -15,6 +15,19 @@ function getSystemTheme(): 'light' | 'dark' {
   }
 }
 
+function getBrowserLanguage(): 'en' | 'uk' | 'ru' {
+  try {
+    const langs = navigator.languages?.length ? navigator.languages : [navigator.language]
+    for (const lang of langs) {
+      if (lang.startsWith('uk')) return 'uk'
+      if (lang.startsWith('ru')) return 'ru'
+    }
+  } catch {
+    // ignore
+  }
+  return 'en'
+}
+
 export function loadTrips(): TripEntry[] {
   try {
     const raw = localStorage.getItem(TRIPS_KEY)
@@ -34,7 +47,7 @@ export function saveTrips(trips: TripEntry[]): void {
 export function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
-    if (!raw) return { ...DEFAULT_SETTINGS, theme: getSystemTheme() }
+    if (!raw) return { theme: getSystemTheme(), language: getBrowserLanguage() }
     const settings: AppSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
     if (!localStorage.getItem(MIGRATION_V2_KEY)) {
       localStorage.setItem(MIGRATION_V2_KEY, '1')
