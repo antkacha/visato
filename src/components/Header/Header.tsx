@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Link, useLocation } from 'react-router-dom'
 import type { User } from '@supabase/supabase-js'
 import type { AppSettings } from '../../types'
 import AuthButton from '../AuthButton/AuthButton'
@@ -37,6 +38,8 @@ export default function Header({
   onSignOut,
 }: Props) {
   const { t } = useTranslation()
+  const location = useLocation()
+  const isMap = location.pathname === '/map'
 
   const cycleTheme = () => {
     const idx = THEME_CYCLE.indexOf(theme)
@@ -67,6 +70,26 @@ export default function Header({
 
         {/* Right: auth + controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 justify-end">
+          {/* Map link */}
+          <Link
+            to={isMap ? '/' : '/map'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              padding: '0.375rem 0.75rem',
+              borderRadius: '0.5rem',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              textDecoration: 'none',
+              border: '1px solid var(--color-border)',
+              background: isMap ? 'var(--color-accent)' : 'transparent',
+              color: isMap ? '#fff' : 'var(--color-text-muted)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            🌍 {isMap ? t('header.backHome', { defaultValue: 'Home' }) : t('map.navLink')}
+          </Link>
           {/* Auth button — most prominent action */}
           <AuthButton
             user={user}

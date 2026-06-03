@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useTrips } from './hooks/useTrips'
 import { useTheme } from './hooks/useTheme'
@@ -11,12 +12,15 @@ import TripForm from './components/TripForm/TripForm'
 import TripChecker from './components/TripChecker/TripChecker'
 import Timeline from './components/Timeline/Timeline'
 import FAQ from './components/FAQ'
+import MapPage from './pages/MapPage'
 import type { TripEntry } from './types'
 import { COUNTRY_ZONE } from './constants/countries'
 import i18n from './i18n'
 
 function App() {
   const { t } = useTranslation()
+  const location = useLocation()
+  const isMapPage = location.pathname === '/map'
   const { user, authLoading, signInWithGoogle, signOut } = useAuth()
   const { trips, syncing, addTrip, updateTrip, deleteTrip } = useTrips(user)
   const { theme, language, setTheme, setLanguage } = useTheme()
@@ -73,7 +77,7 @@ function App() {
         onSignOut={signOut}
       />
 
-      {/* ── Fading content wrapper (language switch) ──────────────────── */}
+      {isMapPage ? <MapPage trips={trips} /> : (
       <div style={{ opacity: langFading ? 0 : 1, transition: 'opacity 150ms ease' }}>
 
       {/* ── Hero ──────────────────────────────────────────────────────── */}
@@ -255,7 +259,7 @@ function App() {
         Made with <span style={{ color: '#2DBF8A' }}>♥</span> by Hanna Tkachenko
       </footer>
 
-      </div>{/* end fade wrapper */}
+      </div>)}
 
       <TripForm
         open={formOpen}

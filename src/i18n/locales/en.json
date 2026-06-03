@@ -211,5 +211,12 @@
     "papua_new_guinea": "Papua New Guinea", "samoa": "Samoa",
     "solomon_islands": "Solomon Islands", "tonga": "Tonga",
     "tuvalu": "Tuvalu", "vanuatu": "Vanuatu"
+  },
+  "map": {
+    "navLink": "My Map",
+    "totalCountries": "Countries visited",
+    "totalDays": "Total days abroad",
+    "topCountry": "Most visited",
+    "noTrips": "Add trips to see your travel map"
   }
 }
