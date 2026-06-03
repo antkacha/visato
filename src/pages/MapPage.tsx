@@ -35,7 +35,7 @@ const THEME = {
   },
   light: {
     bg: '#F0FAF6',
-    ocean: '#2B6CB0',
+    ocean: '#3B82F6',
     visited: '#2DBF8A',
     unvisited: '#D4E6C3',
     border: '#6B9E7A',
