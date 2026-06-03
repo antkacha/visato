@@ -1,0 +1,17 @@
+{
+  "name": "Visato",
+  "short_name": "Visato",
+  "description": "Track your 90/180-day Schengen rule. Add trips, see days remaining, plan future stays.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2DBF8A",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

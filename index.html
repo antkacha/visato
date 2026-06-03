@@ -4,7 +4,29 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Visato</title>
+    <title>Visato — Schengen Days Tracker</title>
+    <meta name="description" content="Track your 90/180-day Schengen rule. Add trips, see days remaining, plan future stays. Supports 196 countries." />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://schengen-tracker-virid.vercel.app" />
+    <meta property="og:title" content="Visato — Schengen Days Tracker" />
+    <meta property="og:description" content="Track your 90/180-day Schengen rule. Add trips, see days remaining, plan future stays. Supports 196 countries." />
+    <meta property="og:image" content="https://schengen-tracker-virid.vercel.app/og-image.svg" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Visato — Schengen Days Tracker" />
+    <meta name="twitter:description" content="Track your 90/180-day Schengen rule. Add trips, see days remaining, plan future stays. Supports 196 countries." />
+    <meta name="twitter:image" content="https://schengen-tracker-virid.vercel.app/og-image.svg" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#2DBF8A" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Visato" />
+
     <script>
       // No-FOUC: apply theme before any CSS loads
       try {
@@ -20,5 +42,12 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
   </body>
 </html>
