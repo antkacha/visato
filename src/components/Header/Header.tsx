@@ -78,7 +78,7 @@ export default function Header({
         </div>
 
         {/* Right: auth + controls */}
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+        <div className="flex items-center gap-1.5 sm:gap-2 justify-end">
           {/* Auth button — most prominent action */}
           <AuthButton
             user={user}
@@ -88,11 +88,11 @@ export default function Header({
             onSignOut={onSignOut}
           />
 
-          {/* Separator */}
-          <div style={{ width: 1, height: '1.25rem', background: 'var(--color-border)' }} />
+          {/* Separator — desktop only */}
+          <div className="hidden sm:block" style={{ width: 1, height: '1.25rem', background: 'var(--color-border)' }} />
 
-          {/* Language toggle */}
-          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+          {/* Language toggle — desktop only */}
+          <div className="hidden sm:flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
             {(['en', 'ru'] as Language[]).map((lang) => (
               <button
                 key={lang}

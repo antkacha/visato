@@ -48,7 +48,7 @@ export default function TripChecker({ trips, onAddTrip }: Props) {
         {t('checker.subtitle')}
       </p>
 
-      <div className="flex flex-col sm:flex-row gap-3 items-end">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
         <div className="flex-1">
           <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-muted)' }}>
             {t('checker.startDate')}
@@ -91,7 +91,7 @@ export default function TripChecker({ trips, onAddTrip }: Props) {
         <button
           onClick={handleCheck}
           disabled={!startDate || !endDate || endDate < startDate}
-          className="px-5 py-2 rounded-lg text-sm font-semibold transition-colors"
+          className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors w-full sm:w-auto"
           style={{
             background: 'var(--color-accent)',
             color: '#fff',

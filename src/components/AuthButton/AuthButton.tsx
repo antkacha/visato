@@ -75,7 +75,7 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
         }}
       >
         <GoogleIcon />
-        {t('auth.signIn')}
+        <span className="hidden sm:inline">{t('auth.signIn')}</span>
       </button>
     )
   }
@@ -148,7 +148,8 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
           whiteSpace: 'nowrap',
         }}
       >
-        {t('auth.signOut')}
+        <span className="hidden sm:inline">{t('auth.signOut')}</span>
+        <span className="sm:hidden" aria-hidden="true">✕</span>
       </button>
     </div>
   )
