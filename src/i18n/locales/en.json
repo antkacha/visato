@@ -29,6 +29,8 @@
     "violation": "⚠ Violation period",
     "days_one": "{{count}} day",
     "days_other": "{{count}} days",
+    "daysUnit_one": "day",
+    "daysUnit_other": "days",
     "empty": "No trips recorded yet"
   },
   "form": {

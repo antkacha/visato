@@ -1,7 +1,7 @@
 import { format, parseISO } from 'date-fns'
-import { enUS, ru, type Locale } from 'date-fns/locale'
+import { enUS, ru, uk, type Locale } from 'date-fns/locale'
 
-const LOCALES: Record<string, Locale> = { en: enUS, ru }
+const LOCALES: Record<string, Locale> = { en: enUS, uk, ru }
 
 export function today(): string {
   return format(new Date(), 'yyyy-MM-dd')

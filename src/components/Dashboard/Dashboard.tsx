@@ -70,7 +70,7 @@ export default function Dashboard({ status, trips }: Props) {
               <p className="text-2xl font-bold" style={{ color: 'var(--color-accent)' }}>
                 {status.maxConsecutiveDays}{' '}
                 <span className="text-sm font-normal" style={{ color: 'var(--color-text-muted)' }}>
-                  {t('trips.days_other', { count: status.maxConsecutiveDays })}
+                  {t('trips.daysUnit', { count: status.maxConsecutiveDays })}
                 </span>
               </p>
             </div>

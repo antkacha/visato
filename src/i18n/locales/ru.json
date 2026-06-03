@@ -31,6 +31,10 @@
     "days_few": "{{count}} дня",
     "days_many": "{{count}} дней",
     "days_other": "{{count}} дней",
+    "daysUnit_one": "день",
+    "daysUnit_few": "дня",
+    "daysUnit_many": "дней",
+    "daysUnit_other": "дней",
     "empty": "Поездок пока не добавлено"
   },
   "form": {
