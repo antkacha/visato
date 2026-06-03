@@ -11,6 +11,7 @@ import TripForm from './components/TripForm/TripForm'
 import TripChecker from './components/TripChecker/TripChecker'
 import Timeline from './components/Timeline/Timeline'
 import SettingsPanel from './components/SettingsPanel/SettingsPanel'
+import FAQ from './components/FAQ'
 import type { TripEntry } from './types'
 import { COUNTRY_ZONE } from './constants/countries'
 import i18n from './i18n'
@@ -53,7 +54,59 @@ function App() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--color-bg)' }}>
+    <>
+      {/* ── Hero ──────────────────────────────────────────────────────── */}
+      <section style={{ background: '#F0FAF6', borderBottom: '1px solid #C8EAD9' }}>
+        <div
+          style={{
+            maxWidth: '52rem',
+            margin: '0 auto',
+            padding: '4rem 1.25rem 3.5rem',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: '2.75rem', marginBottom: '0.75rem' }}>🌍</div>
+          <h1
+            style={{
+              fontSize: 'clamp(2.75rem, 8vw, 4.5rem)',
+              fontWeight: 800,
+              color: '#1A7A59',
+              lineHeight: 1.05,
+              letterSpacing: '-0.03em',
+              margin: '0 0 0.875rem',
+            }}
+          >
+            Visato
+          </h1>
+          <p
+            style={{
+              fontSize: 'clamp(1.0625rem, 2.5vw, 1.25rem)',
+              fontWeight: 600,
+              color: '#2DBF8A',
+              margin: '0 0 1rem',
+              lineHeight: 1.4,
+            }}
+          >
+            Track your Schengen days. Log every adventure.
+          </p>
+          <p
+            style={{
+              fontSize: '0.9375rem',
+              color: '#3D6659',
+              lineHeight: 1.7,
+              maxWidth: '540px',
+              margin: '0 auto',
+            }}
+          >
+            Visato automatically tracks the 90/180-day Schengen rule so you never overstay.
+            Add past and upcoming trips, check days remaining, and plan future stays safely.
+            Supports 196 countries including the UK, USA, Turkey, UAE, Thailand, and Georgia.
+          </p>
+        </div>
+      </section>
+
+      {/* ── App ───────────────────────────────────────────────────────── */}
+      <div style={{ background: 'var(--color-bg)', minHeight: '60vh' }}>
       <Header
         theme={theme}
         language={language}
@@ -102,6 +155,25 @@ function App() {
           onDelete={deleteTrip}
         />
       </main>
+      </div>
+
+      {/* ── FAQ ───────────────────────────────────────────────────────── */}
+      <FAQ />
+
+      {/* ── Footer ────────────────────────────────────────────────────── */}
+      <footer
+        style={{
+          background: '#1A7A59',
+          padding: '1.25rem',
+          textAlign: 'center',
+          color: 'rgba(255,255,255,0.75)',
+          fontSize: '0.8125rem',
+        }}
+      >
+        Made with{' '}
+        <span style={{ color: '#F5C842' }}>♥</span>
+        {' '}by Visato
+      </footer>
 
       <TripForm
         open={formOpen}
@@ -117,7 +189,7 @@ function App() {
         onResidencyChange={setResidencyStatus}
         onClose={() => setSettingsOpen(false)}
       />
-    </div>
+    </>
   )
 }
 
