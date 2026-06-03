@@ -19,7 +19,7 @@ import i18n from './i18n'
 function App() {
   const { t } = useTranslation()
   const { user, authLoading, signInWithGoogle, signOut } = useAuth()
-  const { trips, syncing, addTrip, updateTrip, deleteTrip, exportTrips, importTrips } = useTrips(user)
+  const { trips, syncing, addTrip, updateTrip, deleteTrip } = useTrips(user)
   const { theme, language, residencyStatus, setTheme, setLanguage, setResidencyStatus } = useTheme()
   const schengenTrips = useMemo(() => trips.filter((t) => COUNTRY_ZONE[t.country] === 'schengen'), [trips])
   const status = useSchengen(schengenTrips)
@@ -62,8 +62,6 @@ function App() {
         language={language}
         onThemeChange={setTheme}
         onLanguageChange={handleLanguageChange}
-        onExport={exportTrips}
-        onImport={importTrips}
         onSettingsOpen={() => setSettingsOpen(true)}
         user={user}
         authLoading={authLoading}
@@ -112,7 +110,7 @@ function App() {
               color: '#1A7A59', fontSize: '0.75rem', fontWeight: 700,
               marginBottom: '1.25rem', letterSpacing: '0.02em',
             }}>
-              ✦ Schengen & Travel Tracker
+              ✦ {t('hero.badge')}
             </div>
 
             {/* Headline */}
@@ -122,7 +120,7 @@ function App() {
               lineHeight: 1.1, letterSpacing: '-0.03em',
               margin: '0 0 1rem',
             }}>
-              Track your days.<br />Travel freely.
+              {t('hero.title1')}<br />{t('hero.title2')}
             </h1>
 
             {/* Description */}
@@ -130,18 +128,17 @@ function App() {
               fontSize: '1rem', color: '#3D6659', lineHeight: 1.7,
               margin: '0 0 1.75rem', maxWidth: '380px',
             }}>
-              Automatically tracks the 90/180-day Schengen rule and limits for 196&nbsp;countries.
-              Add trips, see days remaining, and plan stays safely.
+              {t('hero.description')}
             </p>
 
             {/* Stats */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem', fontSize: '0.875rem', fontWeight: 600, color: '#1A7A59' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                <span style={{ fontSize: '1rem' }}>🌍</span> 29 Schengen countries
+                <span style={{ fontSize: '1rem' }}>🌍</span> {t('hero.stat1')}
               </span>
               <span style={{ color: '#A8D4C0' }}>·</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                <span style={{ fontSize: '1rem' }}>📅</span> 90 / 180 day rule
+                <span style={{ fontSize: '1rem' }}>📅</span> {t('hero.stat2')}
               </span>
             </div>
           </div>

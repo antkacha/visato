@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { User } from '@supabase/supabase-js'
 import type { AppSettings } from '../../types'
@@ -12,8 +11,6 @@ interface Props {
   language: Language
   onThemeChange: (t: Theme) => void
   onLanguageChange: (l: Language) => void
-  onExport: () => void
-  onImport: (file: File) => Promise<number>
   onSettingsOpen: () => void
   user: User | null
   authLoading: boolean
@@ -35,8 +32,6 @@ export default function Header({
   language,
   onThemeChange,
   onLanguageChange,
-  onExport,
-  onImport,
   onSettingsOpen,
   user,
   authLoading,
@@ -46,25 +41,10 @@ export default function Header({
   tripCount,
 }: Props) {
   const { t } = useTranslation()
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const cycleTheme = () => {
     const idx = THEME_CYCLE.indexOf(theme)
     onThemeChange(THEME_CYCLE[(idx + 1) % THEME_CYCLE.length])
-  }
-
-  const handleImportClick = () => fileInputRef.current?.click()
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try {
-      const count = await onImport(file)
-      alert(t('export.importSuccess', { count }))
-    } catch {
-      alert(t('export.importError'))
-    }
-    e.target.value = ''
   }
 
   return (
@@ -140,26 +120,6 @@ export default function Header({
             {THEME_ICONS[theme]}
           </button>
 
-          {/* Export */}
-          <button
-            onClick={onExport}
-            title={t('export.export')}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors"
-            style={{ background: 'transparent', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-text-muted)' }}
-          >
-            ↓
-          </button>
-
-          {/* Import */}
-          <button
-            onClick={handleImportClick}
-            title={t('export.import')}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors"
-            style={{ background: 'transparent', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-text-muted)' }}
-          >
-            ↑
-          </button>
-
           {/* Settings */}
           <button
             onClick={onSettingsOpen}
@@ -170,7 +130,6 @@ export default function Header({
             ⚙
           </button>
 
-          <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} style={{ display: 'none' }} />
         </div>
       </div>
     </header>

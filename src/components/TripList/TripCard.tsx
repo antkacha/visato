@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { Pencil, Trash2 } from 'lucide-react'
 import type { TripEntry } from '../../types'
 import { formatDate } from '../../utils/dateUtils'
 import { COUNTRY_FLAGS } from '../../constants/countries'
@@ -112,28 +113,22 @@ export default function TripCard({ trip, onEdit, onDelete }: Props) {
         <button
           onClick={() => onEdit(trip)}
           title={t('trips.edit')}
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-colors"
-          style={{
-            background: 'transparent',
-            border: '1px solid var(--color-border)',
-            cursor: 'pointer',
-            color: 'var(--color-text-muted)',
-          }}
+          className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+          style={{ background: 'transparent', border: '1px solid var(--color-border)', cursor: 'pointer', color: '#6B7280' }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#1A7A59')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = '#6B7280')}
         >
-          ✏️
+          <Pencil size={16} />
         </button>
         <button
           onClick={handleDelete}
           title={t('trips.delete')}
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-colors"
-          style={{
-            background: 'transparent',
-            border: '1px solid var(--color-border)',
-            cursor: 'pointer',
-            color: 'var(--color-danger)',
-          }}
+          className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+          style={{ background: 'transparent', border: '1px solid var(--color-border)', cursor: 'pointer', color: '#6B7280' }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#1A7A59')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = '#6B7280')}
         >
-          🗑
+          <Trash2 size={16} />
         </button>
       </div>
     </motion.div>

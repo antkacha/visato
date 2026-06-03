@@ -1,43 +1,5 @@
 import { useState } from 'react'
-
-const ITEMS = [
-  {
-    q: 'What is the 90/180 Schengen rule?',
-    a: 'You may stay in the Schengen Area for a maximum of 90 days within any rolling 180-day period. The window is not a fixed calendar period — it moves forward each day, looking back 180 days from today. Visato calculates this automatically for every day of your trip.',
-  },
-  {
-    q: 'Which countries are in the Schengen zone?',
-    a: '29 countries: Austria, Belgium, Bulgaria, Croatia, Czech Republic, Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Iceland, Italy, Latvia, Liechtenstein, Lithuania, Luxembourg, Malta, Netherlands, Norway, Poland, Portugal, Romania, Slovakia, Slovenia, Spain, Sweden, and Switzerland.',
-  },
-  {
-    q: 'Does the day of entry count?',
-    a: 'Yes. Both the entry day and the exit day are counted as full Schengen days. A trip arriving on January 1 and leaving on January 5 uses 5 days, not 4.',
-  },
-  {
-    q: 'What happens if I overstay?',
-    a: 'Overstaying is a serious violation. Consequences can include a multi-year re-entry ban across all Schengen countries, fines, deportation, and difficulties obtaining future visas or residency permits.',
-  },
-  {
-    q: 'I have EU residency — do limits apply to me?',
-    a: 'If you hold a valid EU Permanent Residency permit (ПМЖ), the 90/180 rule typically does not apply within your country of residence. Mark yourself as EU PR in Settings and Visato will stop showing Schengen limits. Always verify with your local immigration authority for travel to other Schengen states.',
-  },
-  {
-    q: 'What is Temporary Protection status?',
-    a: 'Temporary Protection (TPS / Тимчасовий захист) is an EU emergency mechanism granting displaced persons protection status. Holders are generally exempt from standard Schengen day limits in their host country. Select TPS in Settings to hide Schengen tracking.',
-  },
-  {
-    q: 'Can I track non-Schengen trips too?',
-    a: 'Yes. Visato tracks multiple travel zones: United Kingdom (180 days / 365), United States, Turkey, and UAE (90 days / 180), Thailand (60 days per entry), Georgia (365 days / year), and any other country as a simple travel log with no limits.',
-  },
-  {
-    q: 'How is the 180-day window calculated?',
-    a: "The 180-day window is a rolling lookback: for any given day, Visato counts all days spent in Schengen during the preceding 180 days (including today). It checks every single day of your planned trip to catch violations that might occur mid-trip, not just at the start.",
-  },
-  {
-    q: "What's the difference between Schengen and EU?",
-    a: 'The EU and Schengen Area are two overlapping but distinct groupings. Ireland is in the EU but not Schengen. Norway, Iceland, Switzerland, and Liechtenstein are in Schengen but not the EU. For the 90/180 rule, only Schengen membership matters.',
-  },
-]
+import { useTranslation } from 'react-i18next'
 
 function Item({ q, a, open, onToggle }: { q: string; a: string; open: boolean; onToggle: () => void }) {
   return (
@@ -98,15 +60,22 @@ function Item({ q, a, open, onToggle }: { q: string; a: string; open: boolean; o
 }
 
 export default function FAQ() {
+  const { t } = useTranslation()
   const [openIdx, setOpenIdx] = useState<number | null>(null)
+
+  const ITEMS = Array.from({ length: 9 }, (_, i) => ({
+    q: t(`faq.q${i + 1}`),
+    a: t(`faq.a${i + 1}`),
+  }))
+
   return (
     <section style={{ borderTop: '1px solid var(--color-border)' }}>
       <div style={{ maxWidth: '52rem', margin: '0 auto', padding: '3rem 1.25rem 3.5rem' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 0.25rem' }}>
-          Frequently Asked Questions
+          {t('faq.title')}
         </h2>
         <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', margin: '0 0 1.25rem' }}>
-          Everything you need to know about Schengen rules and Visato.
+          {t('faq.subtitle')}
         </p>
         {ITEMS.map((item, i) => (
           <Item

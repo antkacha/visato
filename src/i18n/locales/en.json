@@ -102,6 +102,36 @@
     "importError": "Invalid file format",
     "importSuccess": "{{count}} trips imported"
   },
+  "hero": {
+    "badge": "Schengen & Travel Tracker",
+    "title1": "Track your days.",
+    "title2": "Travel freely.",
+    "description": "Automatically tracks the 90/180-day Schengen rule and limits for 196 countries. Add trips, see days remaining, and plan stays safely.",
+    "stat1": "29 Schengen countries",
+    "stat2": "90 / 180 day rule"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about Schengen rules and Visato.",
+    "q1": "What is the 90/180 Schengen rule?",
+    "a1": "You may stay in the Schengen Area for a maximum of 90 days within any rolling 180-day period. The window is not a fixed calendar period — it moves forward each day, looking back 180 days from today. Visato calculates this automatically for every day of your trip.",
+    "q2": "Which countries are in the Schengen zone?",
+    "a2": "29 countries: Austria, Belgium, Bulgaria, Croatia, Czech Republic, Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Iceland, Italy, Latvia, Liechtenstein, Lithuania, Luxembourg, Malta, Netherlands, Norway, Poland, Portugal, Romania, Slovakia, Slovenia, Spain, Sweden, and Switzerland.",
+    "q3": "Does the day of entry count?",
+    "a3": "Yes. Both the entry day and the exit day are counted as full Schengen days. A trip arriving on January 1 and leaving on January 5 uses 5 days, not 4.",
+    "q4": "What happens if I overstay?",
+    "a4": "Overstaying is a serious violation. Consequences can include a multi-year re-entry ban across all Schengen countries, fines, deportation, and difficulties obtaining future visas or residency permits.",
+    "q5": "I have EU residency — do limits apply to me?",
+    "a5": "If you hold a valid EU Permanent Residency permit (ПМЖ), the 90/180 rule typically does not apply within your country of residence. Mark yourself as EU PR in Settings and Visato will stop showing Schengen limits. Always verify with your local immigration authority for travel to other Schengen states.",
+    "q6": "What is Temporary Protection status?",
+    "a6": "Temporary Protection (TPS / Тимчасовий захист) is an EU emergency mechanism granting displaced persons protection status. Holders are generally exempt from standard Schengen day limits in their host country. Select TPS in Settings to hide Schengen tracking.",
+    "q7": "Can I track non-Schengen trips too?",
+    "a7": "Yes. Visato tracks multiple travel zones: United Kingdom (180 days / 365), United States, Turkey, and UAE (90 days / 180), Thailand (60 days per entry), Georgia (365 days / year), and any other country as a simple travel log with no limits.",
+    "q8": "How is the 180-day window calculated?",
+    "a8": "The 180-day window is a rolling lookback: for any given day, Visato counts all days spent in Schengen during the preceding 180 days (including today). It checks every single day of your planned trip to catch violations that might occur mid-trip, not just at the start.",
+    "q9": "What's the difference between Schengen and EU?",
+    "a9": "The EU and Schengen Area are two overlapping but distinct groupings. Ireland is in the EU but not Schengen. Norway, Iceland, Switzerland, and Liechtenstein are in Schengen but not the EU. For the 90/180 rule, only Schengen membership matters."
+  },
   "zones": {
     "uk":       "United Kingdom",
     "usa":      "United States",
