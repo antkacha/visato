@@ -62,7 +62,8 @@
       "countryRequired": "Please select a country"
     },
     "warning": "⚠ Exceeds limit on {{date}} (max {{max}} safe days)",
-    "warningLong": "⚠ This trip exceeds 90 days — it will be flagged as a violation period"
+    "warningLong": "⚠ This trip exceeds 90 days — it will be flagged as a violation period",
+    "warningOverlap": "⚠ This trip overlaps with another trip. You can still save it."
   },
   "checker": {
     "title": "Trip checker",

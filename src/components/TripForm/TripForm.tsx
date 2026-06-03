@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import type { TripEntry } from '../../types'
 import { ALL_COUNTRIES, COUNTRY_FLAGS, COUNTRY_ZONE } from '../../constants/countries'
-import { validatePlannedTrip, getDaysUsedInWindow, tripsOverlap } from '../../utils/schengen'
+import { validatePlannedTrip, getDaysUsedInWindow } from '../../utils/schengen'
 import { today } from '../../utils/dateUtils'
 import { differenceInDays, parseISO } from 'date-fns'
 
@@ -289,6 +289,16 @@ export default function TripForm({ open, trip, existingTrips, initialDates, onSa
         )
       : null
 
+  // Non-blocking warning: 2+ day overlap with any other trip
+  const overlapWarning = !!(form.entryDate && form.exitDate && form.entryDate <= form.exitDate &&
+    otherTrips.some((other) => {
+      const otherExit = other.exitDate === 'ongoing' ? todayISO : other.exitDate
+      const overlapStart = form.entryDate > other.entryDate ? form.entryDate : other.entryDate
+      const overlapEnd = form.exitDate < otherExit ? form.exitDate : otherExit
+      return overlapEnd > overlapStart
+    })
+  )
+
   const validate = (): boolean => {
     const e: typeof errors = {}
     if (!form.entryDate) e.entryDate = t('form.errors.entryRequired')
@@ -296,13 +306,6 @@ export default function TripForm({ open, trip, existingTrips, initialDates, onSa
     if (!form.country) e.country = t('form.errors.countryRequired')
     if (form.entryDate && form.exitDate && form.exitDate < form.entryDate)
       e.exitDate = t('form.errors.exitBeforeEntry')
-    // NOTE: trips >90 days are now ALLOWED — shown as warnings, not blocking errors
-    if (form.entryDate && form.exitDate) {
-      const overlap = otherTrips.find((other) =>
-        tripsOverlap(form.entryDate, form.exitDate, other.entryDate, other.exitDate)
-      )
-      if (overlap) e.general = t('form.errors.overlap')
-    }
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -434,6 +437,13 @@ export default function TripForm({ open, trip, existingTrips, initialDates, onSa
               />
               {errors.exitDate && <p style={errorStyle}>{errors.exitDate}</p>}
             </div>
+
+            {/* Overlap warning — non-blocking */}
+            {overlapWarning && (
+              <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(245,158,11,0.12)', border: '1px solid var(--color-warning)', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-warning)' }}>
+                {t('form.warningOverlap')}
+              </div>
+            )}
 
             {/* Notes */}
             <div style={fieldStyle}>

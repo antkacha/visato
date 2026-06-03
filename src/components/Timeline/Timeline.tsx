@@ -49,6 +49,34 @@ export default function Timeline({ trips }: Props) {
     return exit >= format(rangeStart, 'yyyy-MM-dd') && trip.entryDate <= format(rangeEnd, 'yyyy-MM-dd')
   })
 
+  // Assign rows: only separate trips that overlap by 2+ days
+  const rowMap: Record<string, number> = {}
+  const rowBuckets: Array<Array<{ entry: string; exit: string }>> = []
+  for (const trip of [...visibleTrips].sort((a, b) => a.entryDate.localeCompare(b.entryDate))) {
+    const exit = trip.exitDate === 'ongoing' ? TODAY_ISO : trip.exitDate
+    let placed = false
+    for (let r = 0; r < rowBuckets.length; r++) {
+      const conflict = rowBuckets[r].some(({ entry, exit: bExit }) => {
+        const overlapStart = trip.entryDate > entry ? trip.entryDate : entry
+        const overlapEnd = exit < bExit ? exit : bExit
+        return overlapEnd > overlapStart // 2+ shared days
+      })
+      if (!conflict) {
+        rowBuckets[r].push({ entry: trip.entryDate, exit })
+        rowMap[trip.id] = r
+        placed = true
+        break
+      }
+    }
+    if (!placed) {
+      rowBuckets.push([{ entry: trip.entryDate, exit }])
+      rowMap[trip.id] = rowBuckets.length - 1
+    }
+  }
+  const maxRow = rowBuckets.length > 0 ? rowBuckets.length - 1 : 0
+  const ROW_H = 20
+  const timelineHeight = maxRow === 0 ? 30 : 6 + (maxRow + 1) * ROW_H
+
   // Month labels
   const months: { label: string; pct: number }[] = []
   for (let i = 0; i <= totalDays; i += 30) {
@@ -68,7 +96,7 @@ export default function Timeline({ trips }: Props) {
       <div className="overflow-x-auto">
         <div style={{ minWidth: '500px' }}>
           {/* Timeline bar */}
-          <div className="relative" style={{ height: '64px' }}>
+          <div className="relative" style={{ height: `${timelineHeight}px` }}>
             {/* 180-day window background */}
             <div
               style={{
@@ -84,12 +112,15 @@ export default function Timeline({ trips }: Props) {
             />
 
             {/* Trip bars */}
-            {visibleTrips.map((trip, i) => {
+            {visibleTrips.map((trip) => {
               const exit = trip.exitDate === 'ongoing' ? TODAY_ISO : trip.exitDate
               const left = toPercent(trip.entryDate)
               const right = toPercent(exit)
               const color = countryColor(trip.country)
-              const row = i % 3
+              const row = rowMap[trip.id] ?? 0
+              const top = maxRow === 0
+                ? (timelineHeight - 14) / 2
+                : 6 + row * ROW_H
 
               return (
                 <div
@@ -99,7 +130,7 @@ export default function Timeline({ trips }: Props) {
                     position: 'absolute',
                     left: `${left}%`,
                     width: `${Math.max(right - left, 0.5)}%`,
-                    top: `${8 + row * 18}px`,
+                    top: `${top}px`,
                     height: '14px',
                     background: getTripStatus(trip, TODAY_ISO) === 'planned' ? 'transparent' : color,
                     border: `2px solid ${color}`,
