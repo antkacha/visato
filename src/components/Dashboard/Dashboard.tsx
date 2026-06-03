@@ -46,9 +46,6 @@ export default function Dashboard({ status, trips }: Props) {
             />
             <div className="text-center">
               <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                {t('dashboard.daysUsed')}: <strong style={{ color: 'var(--color-text)' }}>{status.daysUsed}</strong>
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                 {t('dashboard.window', {
                   start: formatDate(status.windowStart, i18n.language),
                   end: formatDate(status.windowEnd, i18n.language),

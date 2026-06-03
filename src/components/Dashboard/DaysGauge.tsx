@@ -63,7 +63,7 @@ export default function DaysGauge({ daysUsed, daysRemaining, isOverLimit, maxDay
             className="text-4xl font-bold tabular-nums leading-none"
             style={{ color }}
           >
-            {daysRemaining}
+            {daysUsed}
           </span>
           <span
             className="text-xs font-medium mt-1"
@@ -78,7 +78,7 @@ export default function DaysGauge({ daysUsed, daysRemaining, isOverLimit, maxDay
         {isOverLimit ? (
           <span style={{ color: 'var(--color-danger)' }}>{t('dashboard.overLimit')}</span>
         ) : (
-          t('dashboard.daysRemaining')
+          t('dashboard.daysUsed')
         )}
       </p>
     </div>
