@@ -23,11 +23,27 @@ const html = /* html */`<!DOCTYPE html>
     position: relative;
   }
 
+  /* ── Diagonal stripe pattern overlay ── */
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 22px,
+      rgba(0,0,0,0.09) 22px,
+      rgba(0,0,0,0.09) 26px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
   /* ── Decorative rings ── */
   .ring {
     position: absolute;
     border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.10);
+    border: 1.5px solid rgba(255,255,255,0.13);
     pointer-events: none;
   }
 
@@ -97,13 +113,12 @@ const html = /* html */`<!DOCTYPE html>
   .phone {
     width: 242px;
     height: 490px;
-    background: #0d1526;
+    background: #F0FAF6;
     border-radius: 46px;
-    border: 2px solid rgba(255,255,255,0.22);
+    border: 2px solid rgba(255,255,255,0.55);
     box-shadow:
-      0 0 0 6px rgba(255,255,255,0.08),
-      0 48px 96px rgba(0,0,0,0.45),
-      inset 0 1px 0 rgba(255,255,255,0.08);
+      0 0 0 6px rgba(255,255,255,0.18),
+      inset 0 1px 0 rgba(255,255,255,0.8);
     position: relative;
     overflow: hidden;
     display: flex;
@@ -118,7 +133,7 @@ const html = /* html */`<!DOCTYPE html>
     transform: translateX(-50%);
     width: 88px;
     height: 28px;
-    background: #000;
+    background: #111827;
     border-radius: 20px;
     z-index: 10;
   }
@@ -130,6 +145,7 @@ const html = /* html */`<!DOCTYPE html>
     flex-direction: column;
     gap: 8px;
     overflow: hidden;
+    background: #F0FAF6;
   }
 
   /* Phone header */
@@ -139,66 +155,66 @@ const html = /* html */`<!DOCTYPE html>
     justify-content: space-between;
     margin-bottom: 2px;
   }
-  .ph-logo  { font-size: 12px; font-weight: 800; color: #2DBF8A; }
+  .ph-logo  { font-size: 12px; font-weight: 800; color: #1A7A59; }
   .ph-chip  {
     font-size: 8px; font-weight: 700;
-    background: rgba(45,191,138,0.18); color: #2DBF8A;
+    background: rgba(45,191,138,0.18); color: #1A7A59;
     padding: 2px 7px; border-radius: 100px;
   }
 
   /* Gauge card */
   .gauge-card {
-    background: #1e293b;
+    background: #ffffff;
     border-radius: 18px;
     padding: 14px 14px 12px;
-    border: 1px solid rgba(255,255,255,0.07);
+    border: 1px solid #C8EAD9;
   }
   .gc-label {
     font-size: 8px; font-weight: 700;
-    color: #64748b; text-transform: uppercase;
+    color: #6b7280; text-transform: uppercase;
     letter-spacing: 0.07em; margin-bottom: 10px;
   }
   .gc-gauge { display: flex; justify-content: center; margin-bottom: 10px; }
   .gc-row {
     display: flex;
     justify-content: space-between;
-    font-size: 8.5px; color: #64748b;
+    font-size: 8.5px; color: #6b7280;
   }
-  .gc-row b { color: #e2e8f0; font-weight: 700; }
+  .gc-row b { color: #111827; font-weight: 700; }
 
   /* Trip cards */
   .trip {
-    background: #1e293b;
+    background: #ffffff;
     border-radius: 13px;
     padding: 9px 12px;
     display: flex;
     align-items: center;
     gap: 8px;
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid #C8EAD9;
   }
   .trip-flag  { font-size: 18px; line-height: 1; }
   .trip-info  { flex: 1; min-width: 0; }
-  .trip-name  { font-size: 10px; font-weight: 700; color: #f1f5f9; }
-  .trip-dates { font-size: 8px; color: #64748b; margin-top: 1px; }
+  .trip-name  { font-size: 10px; font-weight: 700; color: #111827; }
+  .trip-dates { font-size: 8px; color: #9ca3af; margin-top: 1px; }
   .trip-badge {
-    font-size: 8.5px; font-weight: 700; color: #2DBF8A;
-    background: rgba(45,191,138,0.14);
+    font-size: 8.5px; font-weight: 700; color: #1A7A59;
+    background: rgba(45,191,138,0.15);
     padding: 2px 7px; border-radius: 100px;
     white-space: nowrap;
   }
 
   /* Reset card */
   .reset-card {
-    background: rgba(45,191,138,0.12);
+    background: rgba(45,191,138,0.1);
     border-radius: 12px;
     padding: 8px 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border: 1px solid rgba(45,191,138,0.25);
+    border: 1px solid rgba(45,191,138,0.3);
   }
-  .rc-label { font-size: 8px; color: #2DBF8A; font-weight: 600; }
-  .rc-date  { font-size: 8px; color: rgba(45,191,138,0.8); }
+  .rc-label { font-size: 8px; color: #1A7A59; font-weight: 600; }
+  .rc-date  { font-size: 8px; color: #2DBF8A; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -237,7 +253,7 @@ const html = /* html */`<!DOCTYPE html>
           <div class="gc-gauge">
             <svg width="96" height="96" viewBox="0 0 100 100">
               <circle cx="50" cy="50" r="38" fill="none"
-                stroke="rgba(255,255,255,0.07)" stroke-width="9"/>
+                stroke="#C8EAD9" stroke-width="9"/>
               <circle cx="50" cy="50" r="38" fill="none"
                 stroke="#2DBF8A" stroke-width="9"
                 stroke-linecap="round"
@@ -245,13 +261,13 @@ const html = /* html */`<!DOCTYPE html>
                 stroke-dashoffset="62"
                 transform="rotate(-90 50 50)"/>
               <text x="50" y="44" text-anchor="middle"
-                font-size="23" font-weight="800" fill="#2DBF8A"
+                font-size="23" font-weight="800" fill="#1A7A59"
                 font-family="Inter,-apple-system,sans-serif">67</text>
               <text x="50" y="57" text-anchor="middle"
-                font-size="8" fill="#94a3b8"
+                font-size="8" fill="#6b7280"
                 font-family="Inter,-apple-system,sans-serif">days left</text>
               <text x="50" y="67" text-anchor="middle"
-                font-size="7" fill="#475569"
+                font-size="7" fill="#9ca3af"
                 font-family="Inter,-apple-system,sans-serif">out of 90</text>
             </svg>
           </div>
