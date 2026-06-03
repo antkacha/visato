@@ -38,7 +38,7 @@ const THEME = {
     ocean: '#2B6CB0',
     visited: '#2DBF8A',
     unvisited: '#D4E6C3',
-    border: '#FFFFFF',
+    border: '#6B9E7A',
     atmosphere: '#2DBF8A',
     statBg: 'rgba(255,255,255,0.92)',
   },
