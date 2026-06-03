@@ -15,11 +15,11 @@ export default function TripList({ trips, onAdd, onEdit, onDelete }: Props) {
   const { t } = useTranslation()
 
   const todayISO = today()
+  const STATUS_ORDER = { ongoing: 0, planned: 1, past: 2 }
   const sorted = [...trips].sort((a, b) => {
     const sa = getTripStatus(a, todayISO)
     const sb = getTripStatus(b, todayISO)
-    if (sa === 'planned' && sb !== 'planned') return 1
-    if (sa !== 'planned' && sb === 'planned') return -1
+    if (sa !== sb) return STATUS_ORDER[sa] - STATUS_ORDER[sb]
     return b.entryDate.localeCompare(a.entryDate)
   })
 

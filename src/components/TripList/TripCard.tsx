@@ -34,9 +34,9 @@ export default function TripCard({ trip, onEdit, onDelete }: Props) {
   }
 
   const labelColors: Record<string, { bg: string; color: string }> = {
-    past: { bg: 'var(--color-border)', color: 'var(--color-text-muted)' },
-    planned: { bg: 'rgba(58,130,246,0.15)', color: 'var(--color-accent)' },
-    ongoing: { bg: 'rgba(16,185,129,0.15)', color: 'var(--color-success)' },
+    ongoing: { bg: 'rgba(45,191,138,0.15)', color: '#2DBF8A' },
+    planned: { bg: 'rgba(59,130,246,0.15)', color: '#3b82f6' },
+    past:    { bg: 'rgba(107,114,128,0.12)', color: '#6b7280' },
   }
   const lc = labelColors[label]
 
