@@ -6,10 +6,10 @@
 
 /* ── Light theme ── */
 :root[data-theme="light"] {
-  --color-bg: #f0f4f8;
-  --color-surface: rgba(255, 255, 255, 0.75);
-  --color-surface-solid: #ffffff;
-  --color-border: rgba(0, 0, 0, 0.08);
+  --color-bg: #F0FAF6;
+  --color-surface: #FFFFFF;
+  --color-surface-solid: #FFFFFF;
+  --color-border: #C8EAD9;
   --color-text: #111827;
   --color-text-muted: #6b7280;
   --color-accent: #3b82f6;
@@ -17,7 +17,7 @@
   --color-danger: #ef4444;
   --color-warning: #f59e0b;
   --color-success: #10b981;
-  --color-shadow: rgba(0, 0, 0, 0.06);
+  --color-shadow: rgba(45, 191, 138, 0.1);
   --backdrop-blur: blur(16px);
 }
 

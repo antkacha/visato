@@ -70,11 +70,8 @@ export default function Header({
   return (
     <header
       style={{
-        background: 'var(--color-surface)',
-        backdropFilter: 'var(--backdrop-blur)',
-        WebkitBackdropFilter: 'var(--backdrop-blur)',
+        background: '#fff',
         borderBottom: '1px solid var(--color-border)',
-        boxShadow: '0 2px 12px var(--color-shadow)',
         position: 'sticky',
         top: 0,
         zIndex: 50,

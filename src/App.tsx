@@ -89,7 +89,7 @@ function App() {
         }
       `}</style>
 
-      <section style={{ background: '#F0FAF6', borderBottom: '1px solid #C8EAD9' }}>
+      <section>
         <div
           className="hero-grid"
           style={{
