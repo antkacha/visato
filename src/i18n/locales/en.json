@@ -44,6 +44,8 @@
     "selectCountry": "Select a country…",
     "searchCountry": "Search countries…",
     "noCountriesFound": "No countries found",
+    "groupSchengen": "Schengen",
+    "groupOther": "Other countries",
     "notes": "Notes (optional)",
     "notesPlaceholder": "e.g. vacation, work, transit",
     "ongoing": "Still in Schengen (ongoing trip)",

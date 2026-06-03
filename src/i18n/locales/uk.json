@@ -48,6 +48,8 @@
     "selectCountry": "Оберіть країну…",
     "searchCountry": "Пошук країн…",
     "noCountriesFound": "Країни не знайдено",
+    "groupSchengen": "Шенген",
+    "groupOther": "Інші країни",
     "notes": "Нотатки (необов'язково)",
     "notesPlaceholder": "наприклад: відпустка, робота, транзит",
     "ongoing": "Ще в Шенгені (поточна поїздка)",

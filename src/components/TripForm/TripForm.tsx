@@ -37,7 +37,54 @@ function tripToForm(t: TripEntry): FormData {
   }
 }
 
-/* ─── Searchable country combobox ─────────────────────────────────────────── */
+/* ─── Dropdown sub-components ────────────────────────────────────────────── */
+function GroupHeader({ label }: { label: string }) {
+  return (
+    <div style={{
+      padding: '0.375rem 0.75rem 0.25rem',
+      fontSize: '0.6875rem',
+      fontWeight: 700,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      color: 'var(--color-text-muted)',
+    }}>
+      {label}
+    </div>
+  )
+}
+
+interface OptionProps {
+  c: { slug: string; flag: string }
+  selected: boolean
+  onSelect: (slug: string) => void
+  label: string
+}
+
+function CountryOption({ c, selected, onSelect, label }: OptionProps) {
+  return (
+    <div
+      onMouseDown={(e) => { e.preventDefault(); onSelect(c.slug) }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        padding: '0.5rem 0.75rem',
+        cursor: 'pointer',
+        background: selected ? 'rgba(59,130,246,0.08)' : 'transparent',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = selected ? 'rgba(59,130,246,0.14)' : 'rgba(59,130,246,0.06)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = selected ? 'rgba(59,130,246,0.08)' : 'transparent' }}
+    >
+      <span style={{ width: '1rem', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent)', fontSize: '0.75rem', fontWeight: 700 }}>
+        {selected ? '✓' : ''}
+      </span>
+      <span style={{ flexShrink: 0, fontSize: '1.1rem', lineHeight: 1 }}>{c.flag}</span>
+      <span style={{ fontSize: '0.875rem', color: 'var(--color-text)' }}>{label}</span>
+    </div>
+  )
+}
+
+/* ─── Searchable country combobox ────────────────────────────────────────── */
 interface ComboboxProps {
   value: string
   onChange: (v: string) => void
@@ -45,19 +92,24 @@ interface ComboboxProps {
 }
 
 function CountryCombobox({ value, onChange, error }: ComboboxProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [dropStyle, setDropStyle] = useState<React.CSSProperties>({})
   const inputRef = useRef<HTMLInputElement>(null)
   const dropRef = useRef<HTMLDivElement>(null)
 
-  const filtered = ALL_COUNTRIES.filter((c) =>
-    query === '' ||
-    t(`countries.${c.slug}`, { defaultValue: c.slug })
-      .toLowerCase()
-      .includes(query.toLowerCase())
-  )
+  const locale = i18n.language === 'uk' ? 'uk' : i18n.language === 'ru' ? 'ru' : 'en'
+  const label = (c: { slug: string }) => t(`countries.${c.slug}`, { defaultValue: c.slug })
+  const sortByLabel = (a: { slug: string }, b: { slug: string }) =>
+    label(a).localeCompare(label(b), locale)
+
+  const schengenGroup = ALL_COUNTRIES.filter((c) => c.zone === 'schengen').sort(sortByLabel)
+  const otherGroup = ALL_COUNTRIES.filter((c) => c.zone !== 'schengen').sort(sortByLabel)
+
+  const filtered = query
+    ? ALL_COUNTRIES.filter((c) => label(c).toLowerCase().includes(query.toLowerCase())).sort(sortByLabel)
+    : null
 
   const openDrop = useCallback(() => {
     if (!inputRef.current) return
@@ -162,67 +214,20 @@ function CountryCombobox({ value, onChange, error }: ComboboxProps) {
               overflowY: 'auto',
             }}
           >
-            {filtered.length === 0 ? (
-              <div
-                style={{
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: 'var(--color-text-muted)',
-                }}
-              >
+            {filtered !== null && filtered.length === 0 ? (
+              <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
                 {t('form.noCountriesFound')}
               </div>
+            ) : filtered !== null ? (
+              filtered.map((c) => <CountryOption key={c.slug} c={c} selected={value === c.slug} onSelect={select} label={label(c)} />)
             ) : (
-              filtered.map((c) => {
-                const isSelected = value === c.slug
-                return (
-                  <div
-                    key={c.slug}
-                    onMouseDown={(e) => { e.preventDefault(); select(c.slug) }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.5rem 0.75rem',
-                      cursor: 'pointer',
-                      background: isSelected ? 'rgba(59,130,246,0.08)' : 'transparent',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = isSelected
-                        ? 'rgba(59,130,246,0.14)'
-                        : 'rgba(59,130,246,0.06)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = isSelected
-                        ? 'rgba(59,130,246,0.08)'
-                        : 'transparent'
-                    }}
-                  >
-                    {/* Fixed-width checkmark column — prevents text misalignment */}
-                    <span
-                      style={{
-                        width: '1rem',
-                        flexShrink: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--color-accent)',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                      }}
-                    >
-                      {isSelected ? '✓' : ''}
-                    </span>
-                    <span style={{ flexShrink: 0, fontSize: '1.1rem', lineHeight: 1 }}>
-                      {c.flag}
-                    </span>
-                    <span style={{ fontSize: '0.875rem', color: 'var(--color-text)' }}>
-                      {t(`countries.${c.slug}`, { defaultValue: c.slug })}
-                    </span>
-                  </div>
-                )
-              })
+              <>
+                <GroupHeader label={t('form.groupSchengen')} />
+                {schengenGroup.map((c) => <CountryOption key={c.slug} c={c} selected={value === c.slug} onSelect={select} label={label(c)} />)}
+                <div style={{ height: '1px', background: 'var(--color-border)', margin: '4px 0' }} />
+                <GroupHeader label={t('form.groupOther')} />
+                {otherGroup.map((c) => <CountryOption key={c.slug} c={c} selected={value === c.slug} onSelect={select} label={label(c)} />)}
+              </>
             )}
           </div>,
           document.body
