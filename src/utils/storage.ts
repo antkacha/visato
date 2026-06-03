@@ -1,11 +1,12 @@
 import type { TripEntry, AppSettings } from '../types'
 
+
 const TRIPS_KEY = 'schengen_trips'
 const SETTINGS_KEY = 'schengen_settings'
 const MIGRATION_V2_KEY = 'schengen_migration_v2'
 const MIGRATION_V3_KEY = 'schengen_migration_v3'
 
-const DEFAULT_SETTINGS: AppSettings = { theme: 'light', language: 'en', residencyStatus: 'tourist' }
+const DEFAULT_SETTINGS: AppSettings = { theme: 'light', language: 'en' }
 
 export function loadTrips(): TripEntry[] {
   try {

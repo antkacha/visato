@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { AppSettings, ResidencyStatus } from '../types'
+import type { AppSettings } from '../types'
 import { loadSettings, saveSettings } from '../utils/storage'
 
 type Theme = AppSettings['theme']
@@ -28,20 +28,10 @@ export function useTheme() {
     })
   }, [])
 
-  const setResidencyStatus = useCallback((residencyStatus: ResidencyStatus) => {
-    setSettings((prev) => {
-      const next = { ...prev, residencyStatus }
-      saveSettings(next)
-      return next
-    })
-  }, [])
-
   return {
     theme: settings.theme,
     language: settings.language,
-    residencyStatus: settings.residencyStatus,
     setTheme,
     setLanguage,
-    setResidencyStatus,
   }
 }

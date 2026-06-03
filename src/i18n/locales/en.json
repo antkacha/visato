@@ -9,8 +9,8 @@
     "overLimit": "Over the 90-day limit!",
     "violations": "Past violations",
     "violationsEmpty": "No past violations",
-    "exemptEuPr": "You are exempt from Schengen limits (EU Permanent Residency / ПМЖ)",
-    "exemptTps": "Temporary Protection status — Schengen limits do not apply"
+    "exemptEuPr": "",
+    "exemptTps": ""
   },
   "resets": {
     "title": "Upcoming day releases",
@@ -76,18 +76,8 @@
     "window": "180-day window"
   },
   "settings": {
-    "title": "Settings",
-    "theme": "Theme",
     "themeLight": "Light",
-    "themeDark": "Dark",
-    "language": "Language",
-    "residencyStatus": "My status",
-    "statusTourist": "Tourist",
-    "statusTouristDesc": "Standard 90/180 rule applies",
-    "statusEuPr": "EU Permanent Residency (ПМЖ)",
-    "statusEuPrDesc": "Exempt from Schengen limits",
-    "statusTps": "Temporary Protection",
-    "statusTpsDesc": "Тимчасовий захист / TPS — exempt from Schengen limits"
+    "themeDark": "Dark"
   },
   "auth": {
     "signIn": "Sign in to sync",

@@ -10,7 +10,6 @@ import TripList from './components/TripList/TripList'
 import TripForm from './components/TripForm/TripForm'
 import TripChecker from './components/TripChecker/TripChecker'
 import Timeline from './components/Timeline/Timeline'
-import SettingsPanel from './components/SettingsPanel/SettingsPanel'
 import FAQ from './components/FAQ'
 import type { TripEntry } from './types'
 import { COUNTRY_ZONE } from './constants/countries'
@@ -20,18 +19,21 @@ function App() {
   const { t } = useTranslation()
   const { user, authLoading, signInWithGoogle, signOut } = useAuth()
   const { trips, syncing, addTrip, updateTrip, deleteTrip } = useTrips(user)
-  const { theme, language, residencyStatus, setTheme, setLanguage, setResidencyStatus } = useTheme()
+  const { theme, language, setTheme, setLanguage } = useTheme()
   const schengenTrips = useMemo(() => trips.filter((t) => COUNTRY_ZONE[t.country] === 'schengen'), [trips])
   const status = useSchengen(schengenTrips)
-  const isExempt = residencyStatus === 'eu_pr' || residencyStatus === 'tps'
 
   const [formOpen, setFormOpen] = useState(false)
   const [editingTrip, setEditingTrip] = useState<TripEntry | null>(null)
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [langFading, setLangFading] = useState(false)
 
   const handleLanguageChange = (lang: 'en' | 'uk' | 'ru') => {
-    setLanguage(lang)
-    i18n.changeLanguage(lang)
+    setLangFading(true)
+    setTimeout(() => {
+      setLanguage(lang)
+      i18n.changeLanguage(lang)
+      setLangFading(false)
+    }, 150)
   }
 
   const handleEdit = (trip: TripEntry) => {
@@ -62,7 +64,6 @@ function App() {
         language={language}
         onThemeChange={setTheme}
         onLanguageChange={handleLanguageChange}
-        onSettingsOpen={() => setSettingsOpen(true)}
         user={user}
         authLoading={authLoading}
         syncing={syncing}
@@ -70,6 +71,9 @@ function App() {
         onSignOut={signOut}
         tripCount={trips.length}
       />
+
+      {/* ── Fading content wrapper (language switch) ──────────────────── */}
+      <div style={{ opacity: langFading ? 0 : 1, transition: 'opacity 150ms ease' }}>
 
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <style>{`
@@ -218,28 +222,11 @@ function App() {
       <main
         className="max-w-4xl mx-auto px-4 pt-20 pb-20 space-y-6"
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        {...(formOpen || settingsOpen ? ({ inert: true } as any) : {})}
+        {...(formOpen ? ({ inert: true } as any) : {})}
       >
-        {isExempt ? (
-          <div
-            className="glass-card p-5"
-            style={{
-              background: 'rgba(16,185,129,0.08)',
-              border: '1px solid var(--color-success)',
-              color: 'var(--color-success)',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-            }}
-          >
-            {residencyStatus === 'eu_pr' ? t('dashboard.exemptEuPr') : t('dashboard.exemptTps')}
-          </div>
-        ) : (
-          <>
-            <Dashboard status={status} trips={trips} />
-            <TripChecker trips={schengenTrips} onAddTrip={addTrip} />
-            <Timeline trips={trips} />
-          </>
-        )}
+        <Dashboard status={status} trips={trips} />
+        <TripChecker trips={schengenTrips} onAddTrip={addTrip} />
+        <Timeline trips={trips} />
         <TripList
           trips={trips}
           onAdd={() => setFormOpen(true)}
@@ -264,19 +251,14 @@ function App() {
         Made with <span style={{ color: '#2DBF8A' }}>♥</span> by Visato
       </footer>
 
+      </div>{/* end fade wrapper */}
+
       <TripForm
         open={formOpen}
         trip={editingTrip}
         existingTrips={trips}
         onSave={handleFormSave}
         onClose={handleFormClose}
-      />
-
-      <SettingsPanel
-        open={settingsOpen}
-        residencyStatus={residencyStatus}
-        onResidencyChange={setResidencyStatus}
-        onClose={() => setSettingsOpen(false)}
       />
     </div>
   )

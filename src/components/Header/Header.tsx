@@ -11,7 +11,6 @@ interface Props {
   language: Language
   onThemeChange: (t: Theme) => void
   onLanguageChange: (l: Language) => void
-  onSettingsOpen: () => void
   user: User | null
   authLoading: boolean
   syncing: boolean
@@ -32,7 +31,6 @@ export default function Header({
   language,
   onThemeChange,
   onLanguageChange,
-  onSettingsOpen,
   user,
   authLoading,
   syncing,
@@ -118,16 +116,6 @@ export default function Header({
             style={{ background: 'transparent', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-text)' }}
           >
             {THEME_ICONS[theme]}
-          </button>
-
-          {/* Settings — desktop only (language+theme cover mobile needs) */}
-          <button
-            onClick={onSettingsOpen}
-            title={t('settings.title')}
-            className="hidden sm:flex w-8 h-8 rounded-lg items-center justify-center text-base transition-colors"
-            style={{ background: 'transparent', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-text-muted)' }}
-          >
-            ⚙
           </button>
 
         </div>

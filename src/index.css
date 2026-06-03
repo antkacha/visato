@@ -44,8 +44,9 @@
   --color-heading: #f1f5f9;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
+  transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease;
 }
 
 html {
@@ -60,7 +61,6 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
   min-height: 100dvh;
-  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #root {
