@@ -71,6 +71,7 @@
     "startDate": "Start date",
     "endDate": "End date",
     "check": "Check",
+    "clear": "Clear",
     "safe": "✓ Safe — {{days}} days used in window",
     "violation": "✗ Exceeds limit on {{date}} — max safe stay: {{max}} days",
     "addTrip": "Add this trip",

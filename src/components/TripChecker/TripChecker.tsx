@@ -31,6 +31,12 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
     setResult({ ...validation, daysInWindow })
   }
 
+  const handleClear = () => {
+    setStartDate('')
+    setEndDate('')
+    setResult(null)
+  }
+
   const handleAddTrip = () => {
     if (!startDate || !endDate) return
     onOpenForm({ entryDate: startDate, exitDate: endDate })
@@ -102,6 +108,21 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
           }}
         >
           {t('checker.check')}
+        </button>
+        <button
+          onClick={handleClear}
+          disabled={!startDate && !endDate && !result}
+          className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors w-full sm:w-auto"
+          style={{
+            background: 'transparent',
+            color: 'var(--color-text-muted)',
+            border: '1px solid var(--color-border)',
+            cursor: 'pointer',
+            opacity: startDate || endDate || result ? 1 : 0.4,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {t('checker.clear')}
         </button>
       </div>
 
