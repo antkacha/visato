@@ -5,30 +5,11 @@ import { loadSettings, saveSettings } from '../utils/storage'
 type Theme = AppSettings['theme']
 type Language = AppSettings['language']
 
-function resolveTheme(theme: Theme): 'light' | 'dark' {
-  if (theme === 'system') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  }
-  return theme
-}
-
-function applyTheme(resolved: 'light' | 'dark') {
-  document.documentElement.setAttribute('data-theme', resolved)
-}
-
 export function useTheme() {
   const [settings, setSettings] = useState<AppSettings>(loadSettings)
 
   useEffect(() => {
-    applyTheme(resolveTheme(settings.theme))
-  }, [settings.theme])
-
-  useEffect(() => {
-    if (settings.theme !== 'system') return
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = () => applyTheme(resolveTheme('system'))
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
+    document.documentElement.setAttribute('data-theme', settings.theme)
   }, [settings.theme])
 
   const setTheme = useCallback((theme: Theme) => {

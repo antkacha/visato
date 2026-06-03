@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useTrips } from './hooks/useTrips'
 import { useTheme } from './hooks/useTheme'
 import { useAuth } from './hooks/useAuth'
@@ -11,13 +12,17 @@ import TripChecker from './components/TripChecker/TripChecker'
 import Timeline from './components/Timeline/Timeline'
 import SettingsPanel from './components/SettingsPanel/SettingsPanel'
 import type { TripEntry } from './types'
+import { COUNTRY_ZONE } from './constants/countries'
 import i18n from './i18n'
 
 function App() {
+  const { t } = useTranslation()
   const { user, authLoading, signInWithGoogle, signOut } = useAuth()
   const { trips, syncing, addTrip, updateTrip, deleteTrip, exportTrips, importTrips } = useTrips(user)
   const { theme, language, residencyStatus, setTheme, setLanguage, setResidencyStatus } = useTheme()
-  const status = useSchengen(trips)
+  const schengenTrips = useMemo(() => trips.filter((t) => COUNTRY_ZONE[t.country] === 'schengen'), [trips])
+  const status = useSchengen(schengenTrips)
+  const isExempt = residencyStatus === 'eu_pr' || residencyStatus === 'tps'
 
   const [formOpen, setFormOpen] = useState(false)
   const [editingTrip, setEditingTrip] = useState<TripEntry | null>(null)
@@ -70,9 +75,26 @@ function App() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {...(formOpen || settingsOpen ? ({ inert: true } as any) : {})}
       >
-        <Dashboard status={status} trips={trips} residencyStatus={residencyStatus} />
-        <TripChecker trips={trips} onAddTrip={addTrip} residencyStatus={residencyStatus} />
-        <Timeline trips={trips} />
+        {isExempt ? (
+          <div
+            className="glass-card p-5"
+            style={{
+              background: 'rgba(16,185,129,0.08)',
+              border: '1px solid var(--color-success)',
+              color: 'var(--color-success)',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+            }}
+          >
+            {residencyStatus === 'eu_pr' ? t('dashboard.exemptEuPr') : t('dashboard.exemptTps')}
+          </div>
+        ) : (
+          <>
+            <Dashboard status={status} trips={trips} />
+            <TripChecker trips={schengenTrips} onAddTrip={addTrip} />
+            <Timeline trips={trips} />
+          </>
+        )}
         <TripList
           trips={trips}
           onAdd={() => setFormOpen(true)}

@@ -9,8 +9,11 @@ export interface TripEntry {
 
 export type ResidencyStatus = 'tourist' | 'eu_pr' | 'tps'
 
+export type Zone = 'schengen' | 'uk' | 'usa' | 'turkey' | 'uae' | 'thailand' | 'georgia' | 'other'
+export type TrackedZone = Exclude<Zone, 'schengen' | 'other'>
+
 export interface AppSettings {
-  theme: 'light' | 'dark' | 'system'
+  theme: 'light' | 'dark'
   language: 'en' | 'ru'
   residencyStatus: ResidencyStatus
 }

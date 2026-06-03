@@ -1,24 +1,22 @@
 import { useState } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import type { TripEntry, TripValidationResult, ResidencyStatus } from '../../types'
+import type { TripEntry, TripValidationResult } from '../../types'
 import { validatePlannedTrip, getDaysUsedInWindow } from '../../utils/schengen'
 import { formatDate } from '../../utils/dateUtils'
 
 interface Props {
   trips: TripEntry[]
   onAddTrip: (trip: Omit<TripEntry, 'id'>) => void
-  residencyStatus: ResidencyStatus
 }
 
-export default function TripChecker({ trips, onAddTrip, residencyStatus }: Props) {
+export default function TripChecker({ trips, onAddTrip }: Props) {
   const { t, i18n } = useTranslation()
   const shouldReduceMotion = useReducedMotion()
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [result, setResult] = useState<(TripValidationResult & { daysInWindow?: number }) | null>(null)
 
-  const isExempt = residencyStatus === 'eu_pr' || residencyStatus === 'tps'
   const nonPlanned = trips.filter((t) => !t.isPlanned)
 
   const handleCheck = () => {
@@ -49,23 +47,6 @@ export default function TripChecker({ trips, onAddTrip, residencyStatus }: Props
       <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>
         {t('checker.subtitle')}
       </p>
-
-      {isExempt && (
-        <div
-          style={{
-            padding: '0.625rem 0.875rem',
-            borderRadius: '0.5rem',
-            background: 'rgba(16,185,129,0.1)',
-            border: '1px solid var(--color-success)',
-            color: 'var(--color-success)',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            marginBottom: '0.75rem',
-          }}
-        >
-          {t('checker.exempt')}
-        </div>
-      )}
 
       <div className="flex flex-col sm:flex-row gap-3 items-end">
         <div className="flex-1">

@@ -26,10 +26,9 @@ interface Props {
 const THEME_ICONS: Record<Theme, string> = {
   light: '☀️',
   dark: '🌙',
-  system: '💻',
 }
 
-const THEME_CYCLE: Theme[] = ['light', 'dark', 'system']
+const THEME_CYCLE: Theme[] = ['light', 'dark']
 
 export default function Header({
   theme,

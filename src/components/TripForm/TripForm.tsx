@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import type { TripEntry } from '../../types'
-import { SCHENGEN_COUNTRIES, COUNTRY_FLAGS } from '../../constants/countries'
+import { ALL_COUNTRIES, COUNTRY_FLAGS, COUNTRY_ZONE } from '../../constants/countries'
 import { validatePlannedTrip, getDaysUsedInWindow, tripsOverlap } from '../../utils/schengen'
 import { today } from '../../utils/dateUtils'
 import { differenceInDays, parseISO } from 'date-fns'
@@ -55,7 +55,7 @@ function CountryCombobox({ value, onChange, error }: ComboboxProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const dropRef = useRef<HTMLDivElement>(null)
 
-  const filtered = SCHENGEN_COUNTRIES.filter((c) =>
+  const filtered = ALL_COUNTRIES.filter((c) =>
     query === '' ||
     t(`countries.${c.slug}`, { defaultValue: c.slug })
       .toLowerCase()
@@ -260,6 +260,8 @@ export default function TripForm({ open, trip, existingTrips, onSave, onClose }:
 
   const resolvedExit = form.isOngoing ? today() : form.exitDate
   const otherTrips = existingTrips.filter((t) => t.id !== trip?.id)
+  const isSchengen = COUNTRY_ZONE[form.country] === 'schengen'
+  const otherSchengenTrips = otherTrips.filter((t) => COUNTRY_ZONE[t.country] === 'schengen')
 
   const tripDays =
     form.entryDate && resolvedExit && form.entryDate <= resolvedExit
@@ -267,14 +269,14 @@ export default function TripForm({ open, trip, existingTrips, onSave, onClose }:
       : 0
 
   const validationResult =
-    form.entryDate && resolvedExit && form.entryDate <= resolvedExit
-      ? validatePlannedTrip(otherTrips.filter((t) => !t.isPlanned), form.entryDate, resolvedExit)
+    isSchengen && form.entryDate && resolvedExit && form.entryDate <= resolvedExit
+      ? validatePlannedTrip(otherSchengenTrips.filter((t) => !t.isPlanned), form.entryDate, resolvedExit)
       : null
 
   const windowTotal =
-    form.entryDate && resolvedExit && form.entryDate <= resolvedExit
+    isSchengen && form.entryDate && resolvedExit && form.entryDate <= resolvedExit
       ? getDaysUsedInWindow(
-          [...otherTrips, { id: '__preview', entryDate: form.entryDate, exitDate: resolvedExit, country: form.country }],
+          [...otherSchengenTrips, { id: '__preview', entryDate: form.entryDate, exitDate: resolvedExit, country: form.country }],
           today()
         )
       : null
@@ -415,7 +417,7 @@ export default function TripForm({ open, trip, existingTrips, onSave, onClose }:
             {/* Ongoing */}
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text)' }}>
               <input type="checkbox" checked={form.isOngoing} onChange={(e) => set('isOngoing', e.target.checked)} />
-              {t('form.ongoing')}
+              {t('form.ongoingTrip')}
             </label>
 
             {/* Exit date */}
@@ -451,22 +453,22 @@ export default function TripForm({ open, trip, existingTrips, onSave, onClose }:
               />
             </div>
 
-            {/* >90 day warning (non-blocking) */}
-            {tripDays > 90 && (
+            {/* >90 day warning — Schengen only */}
+            {isSchengen && tripDays > 90 && (
               <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(245,158,11,0.12)', border: '1px solid var(--color-warning)', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-warning)' }}>
                 {t('form.warningLong')}
               </div>
             )}
 
-            {/* Live preview */}
-            {tripDays > 0 && tripDays <= 90 && windowTotal !== null && (
+            {/* Live Schengen window preview */}
+            {isSchengen && tripDays > 0 && tripDays <= 90 && windowTotal !== null && (
               <div style={{ padding: '0.5rem 0.75rem', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
                 {t('form.preview', { days: tripDays, total: windowTotal })}
               </div>
             )}
 
-            {/* 90/180 window violation warning */}
-            {validationResult && !validationResult.isValid && tripDays <= 90 && (
+            {/* 90/180 violation warning — Schengen only */}
+            {isSchengen && validationResult && !validationResult.isValid && tripDays <= 90 && (
               <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--color-danger)', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-danger)' }}>
                 {t('form.warning', { date: validationResult.firstViolationDate ?? '—', max: validationResult.maxSafeDays ?? 0 })}
               </div>

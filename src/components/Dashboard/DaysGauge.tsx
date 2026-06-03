@@ -5,6 +5,7 @@ interface Props {
   daysUsed: number
   daysRemaining: number
   isOverLimit: boolean
+  maxDays?: number
 }
 
 const RADIUS = 54
@@ -17,10 +18,10 @@ function accentColor(remaining: number, overLimit: boolean): string {
   return 'var(--color-success)'
 }
 
-export default function DaysGauge({ daysUsed, daysRemaining, isOverLimit }: Props) {
+export default function DaysGauge({ daysUsed, daysRemaining, isOverLimit, maxDays = 90 }: Props) {
   const { t } = useTranslation()
   const shouldReduceMotion = useReducedMotion()
-  const fraction = Math.min(daysUsed / 90, 1)
+  const fraction = Math.min(daysUsed / maxDays, 1)
   const dashOffset = CIRCUMFERENCE * (1 - fraction)
   const color = accentColor(daysRemaining, isOverLimit)
 
@@ -68,7 +69,7 @@ export default function DaysGauge({ daysUsed, daysRemaining, isOverLimit }: Prop
             className="text-xs font-medium mt-1"
             style={{ color: 'var(--color-text-muted)' }}
           >
-            / 90
+            / {maxDays}
           </span>
         </div>
       </div>
