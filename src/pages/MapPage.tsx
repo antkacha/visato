@@ -83,9 +83,9 @@ export default function MapPage({ trips }: Props) {
 
   const applyGlobeMaterial = useCallback((g: any) => {
     const mat = g.globeMaterial()
-    // Use emissive-only rendering: set diffuse to black so lights have no effect,
-    // and emit the ocean color uniformly — this eliminates the dark-side shadow entirely.
-    mat.color.set('#000000')
+    mat.map = null            // Remove satellite texture map
+    mat.needsUpdate = true
+    mat.color.set('#000000') // Black diffuse so lights have no effect
     mat.emissive.set(colors.ocean)
     mat.emissiveIntensity = 1
   }, [colors.ocean])
@@ -98,8 +98,12 @@ export default function MapPage({ trips }: Props) {
 
     applyGlobeMaterial(g)
 
-    // Remove DirectionalLights so polygons are also evenly lit
+    // Clear scene and renderer backgrounds
     const scene = g.scene()
+    scene.background = null
+    g.renderer().setClearColor(0x000000, 0)
+
+    // Remove DirectionalLights so polygons are also evenly lit
     for (let i = scene.children.length - 1; i >= 0; i--) {
       if (scene.children[i].type === 'DirectionalLight') scene.remove(scene.children[i])
     }
@@ -223,8 +227,8 @@ export default function MapPage({ trips }: Props) {
             ref={globeRef}
             width={dims.w}
             height={globeH}
-            backgroundColor={colors.bg}
-            globeImageUrl=""
+            backgroundColor="rgba(0,0,0,0)"
+            globeImageUrl={null as unknown as string}
             showAtmosphere={false}
             polygonsData={countries}
             polygonCapColor={getCapColor}
