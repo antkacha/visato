@@ -43,6 +43,7 @@ export default function TripCard({ trip, onEdit, onDelete }: Props) {
   const lc = labelColors[label]
 
   return (
+    <>
     <motion.div
       layout
       initial={{ opacity: 0, y: 8 }}
@@ -234,5 +235,6 @@ export default function TripCard({ trip, onEdit, onDelete }: Props) {
       </>,
       document.body
     )}
+    </>
   )
 }
