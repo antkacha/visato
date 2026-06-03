@@ -23,22 +23,6 @@ const html = /* html */`<!DOCTYPE html>
     position: relative;
   }
 
-  /* ── Diagonal stripe pattern overlay ── */
-  body::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 22px,
-      rgba(0,0,0,0.09) 22px,
-      rgba(0,0,0,0.09) 26px
-    );
-    pointer-events: none;
-    z-index: 0;
-  }
-
   /* ── Decorative rings ── */
   .ring {
     position: absolute;
