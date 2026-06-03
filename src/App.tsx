@@ -29,7 +29,7 @@ function App() {
   const [editingTrip, setEditingTrip] = useState<TripEntry | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
-  const handleLanguageChange = (lang: 'en' | 'ru') => {
+  const handleLanguageChange = (lang: 'en' | 'uk' | 'ru') => {
     setLanguage(lang)
     i18n.changeLanguage(lang)
   }

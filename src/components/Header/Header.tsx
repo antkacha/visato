@@ -93,7 +93,7 @@ export default function Header({
 
           {/* Language toggle — always visible */}
           <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
-            {(['en', 'ru'] as Language[]).map((lang) => (
+            {(['en', 'uk', 'ru'] as Language[]).map((lang) => (
               <button
                 key={lang}
                 onClick={() => onLanguageChange(lang)}

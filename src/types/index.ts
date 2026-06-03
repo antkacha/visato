@@ -14,7 +14,7 @@ export type TrackedZone = Exclude<Zone, 'schengen' | 'other'>
 
 export interface AppSettings {
   theme: 'light' | 'dark'
-  language: 'en' | 'ru'
+  language: 'en' | 'uk' | 'ru'
   residencyStatus: ResidencyStatus
 }
 

@@ -3,6 +3,7 @@ import type { TripEntry, AppSettings } from '../types'
 const TRIPS_KEY = 'schengen_trips'
 const SETTINGS_KEY = 'schengen_settings'
 const MIGRATION_V2_KEY = 'schengen_migration_v2'
+const MIGRATION_V3_KEY = 'schengen_migration_v3'
 
 const DEFAULT_SETTINGS: AppSettings = { theme: 'light', language: 'en', residencyStatus: 'tourist' }
 
@@ -31,6 +32,13 @@ export function loadSettings(): AppSettings {
       localStorage.setItem(MIGRATION_V2_KEY, '1')
       settings.theme = 'light'
       saveSettings(settings)
+    }
+    if (!localStorage.getItem(MIGRATION_V3_KEY)) {
+      localStorage.setItem(MIGRATION_V3_KEY, '1')
+      if ((settings.language as string) === 'ru') {
+        settings.language = 'uk'
+        saveSettings(settings)
+      }
     }
     return settings
   } catch {
