@@ -35,7 +35,7 @@ const THEME = {
   },
   light: {
     bg: '#F0FAF6',
-    ocean: '#C8E8DC',
+    ocean: '#E8F5F0',
     visited: '#2DBF8A',
     unvisited: '#D1D5DB',
     border: 'rgba(0,0,0,0.07)',
@@ -81,40 +81,47 @@ export default function MapPage({ trips }: Props) {
     return () => ro.disconnect()
   }, [])
 
+  const applyGlobeMaterial = useCallback((g: any) => {
+    const mat = g.globeMaterial()
+    // Use emissive-only rendering: set diffuse to black so lights have no effect,
+    // and emit the ocean color uniformly — this eliminates the dark-side shadow entirely.
+    mat.color.set('#000000')
+    mat.emissive.set(colors.ocean)
+    mat.emissiveIntensity = 1
+  }, [colors.ocean])
+
   // Set ocean color and auto-rotation on globe ready
   const handleGlobeReady = useCallback(() => {
     const globe = globeRef.current
     if (!globe) return
+    const g = globe as any
 
-    // Set ocean/globe sphere color via the underlying Three.js material
-    const mat = (globe as unknown as { globeMaterial: () => { color: { set: (c: string) => void } } }).globeMaterial()
-    mat.color.set(colors.ocean)
+    applyGlobeMaterial(g)
 
-    const ctrl = globe.controls() as {
-      autoRotate: boolean
-      autoRotateSpeed: number
-      addEventListener: (e: string, fn: () => void) => void
+    // Remove DirectionalLights so polygons are also evenly lit
+    const scene = g.scene()
+    for (let i = scene.children.length - 1; i >= 0; i--) {
+      if (scene.children[i].type === 'DirectionalLight') scene.remove(scene.children[i])
     }
+    scene.children.forEach((c: any) => {
+      if (c.type === 'AmbientLight') c.intensity = 1.5
+    })
+
+    const ctrl = g.controls()
     ctrl.autoRotate = true
     ctrl.autoRotateSpeed = 0.4
-
     let timer: ReturnType<typeof setTimeout>
-    ctrl.addEventListener('start', () => {
-      ctrl.autoRotate = false
-      clearTimeout(timer)
-    })
+    ctrl.addEventListener('start', () => { ctrl.autoRotate = false; clearTimeout(timer) })
     ctrl.addEventListener('end', () => {
       timer = setTimeout(() => { ctrl.autoRotate = true }, 2000)
     })
-  }, [colors.ocean])
+  }, [applyGlobeMaterial])
 
-  // Re-apply ocean color when theme changes
+  // Re-apply when theme changes
   useEffect(() => {
     const globe = globeRef.current
-    if (!globe) return
-    const mat = (globe as unknown as { globeMaterial: () => { color: { set: (c: string) => void } } }).globeMaterial()
-    mat.color.set(colors.ocean)
-  }, [colors.ocean])
+    if (globe) applyGlobeMaterial(globe as any)
+  }, [applyGlobeMaterial])
 
   // Visited countries set
   const visitedSlugs = useMemo(
@@ -217,10 +224,8 @@ export default function MapPage({ trips }: Props) {
             width={dims.w}
             height={globeH}
             backgroundColor={colors.bg}
-            globeImageUrl={undefined}
-            showAtmosphere
-            atmosphereColor={colors.atmosphere}
-            atmosphereAltitude={0.12}
+            globeImageUrl=""
+            showAtmosphere={false}
             polygonsData={countries}
             polygonCapColor={getCapColor}
             polygonSideColor={() => 'transparent'}
