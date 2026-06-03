@@ -248,7 +248,7 @@ function App() {
           fontSize: '0.8125rem',
         }}
       >
-        Made with <span style={{ color: '#2DBF8A' }}>♥</span> by Visato
+        Made with <span style={{ color: '#2DBF8A' }}>♥</span> by Hanna Tkachenko
       </footer>
 
       </div>{/* end fade wrapper */}
