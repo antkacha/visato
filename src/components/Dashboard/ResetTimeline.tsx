@@ -46,7 +46,7 @@ export default function ResetTimeline({ resets }: Props) {
               +{event.daysReleased}
             </span>
             <span style={{ color: 'var(--color-text-muted)' }}>
-              → {event.totalAfter} {t('trips.days_other', { count: event.totalAfter })}
+              → {t('trips.days_other', { count: event.totalAfter })}
             </span>
           </motion.li>
         ))}

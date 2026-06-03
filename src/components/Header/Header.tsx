@@ -91,8 +91,8 @@ export default function Header({
           {/* Separator — desktop only */}
           <div className="hidden sm:block" style={{ width: 1, height: '1.25rem', background: 'var(--color-border)' }} />
 
-          {/* Language toggle — desktop only */}
-          <div className="hidden sm:flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+          {/* Language toggle — always visible */}
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
             {(['en', 'ru'] as Language[]).map((lang) => (
               <button
                 key={lang}
@@ -120,11 +120,11 @@ export default function Header({
             {THEME_ICONS[theme]}
           </button>
 
-          {/* Settings */}
+          {/* Settings — desktop only (language+theme cover mobile needs) */}
           <button
             onClick={onSettingsOpen}
             title={t('settings.title')}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-colors"
+            className="hidden sm:flex w-8 h-8 rounded-lg items-center justify-center text-base transition-colors"
             style={{ background: 'transparent', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-text-muted)' }}
           >
             ⚙
