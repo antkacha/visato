@@ -16,7 +16,6 @@ interface Props {
   syncing: boolean
   onSignIn: () => void
   onSignOut: () => void
-  tripCount: number
 }
 
 const THEME_ICONS: Record<Theme, string> = {
@@ -36,7 +35,6 @@ export default function Header({
   syncing,
   onSignIn,
   onSignOut,
-  tripCount,
 }: Props) {
   const { t } = useTranslation()
 
@@ -65,14 +63,6 @@ export default function Header({
           >
             Visato
           </span>
-          {tripCount > 0 && (
-            <span
-              className="text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{ background: 'rgba(45,191,138,0.15)', color: '#2DBF8A' }}
-            >
-              {tripCount}
-            </span>
-          )}
         </div>
 
         {/* Right: auth + controls */}

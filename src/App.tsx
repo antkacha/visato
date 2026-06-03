@@ -71,7 +71,6 @@ function App() {
         syncing={syncing}
         onSignIn={signInWithGoogle}
         onSignOut={signOut}
-        tripCount={trips.length}
       />
 
       {/* ── Fading content wrapper (language switch) ──────────────────── */}
