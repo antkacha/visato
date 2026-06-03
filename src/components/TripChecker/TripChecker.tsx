@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import type { TripEntry, TripValidationResult } from '../../types'
 import { validatePlannedTrip, getDaysUsedInWindow } from '../../utils/schengen'
-import { formatDate } from '../../utils/dateUtils'
+import { formatDate, today } from '../../utils/dateUtils'
 
 interface Props {
   trips: TripEntry[]
@@ -17,7 +17,7 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
   const [endDate, setEndDate] = useState('')
   const [result, setResult] = useState<(TripValidationResult & { daysInWindow?: number }) | null>(null)
 
-  const nonPlanned = trips.filter((t) => !t.isPlanned)
+  const nonPlanned = trips.filter((t) => t.entryDate <= today())
 
   const handleCheck = () => {
     if (!startDate || !endDate || endDate < startDate) return

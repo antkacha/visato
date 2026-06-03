@@ -3,9 +3,8 @@ import type { SchengenStatus, TripEntry, TrackedZone } from '../../types'
 import DaysGauge from './DaysGauge'
 import ResetTimeline from './ResetTimeline'
 import ZoneCard from './ZoneCard'
-import { formatDate } from '../../utils/dateUtils'
+import { formatDate, getTripStatus, today } from '../../utils/dateUtils'
 import { differenceInDays, parseISO } from 'date-fns'
-import { today } from '../../utils/dateUtils'
 import { COUNTRY_FLAGS, COUNTRY_ZONE } from '../../constants/countries'
 import { ZONE_CONFIGS, computeZoneStatus } from '../../utils/zones'
 
@@ -22,8 +21,9 @@ function tripDuration(trip: TripEntry): number {
 export default function Dashboard({ status, trips }: Props) {
   const { t, i18n } = useTranslation()
 
+  const todayISO = today()
   const violationTrips = trips.filter(
-    (trip) => !trip.isPlanned && tripDuration(trip) > 90 && COUNTRY_ZONE[trip.country] === 'schengen'
+    (trip) => getTripStatus(trip, todayISO) !== 'planned' && tripDuration(trip) > 90 && COUNTRY_ZONE[trip.country] === 'schengen'
   )
 
   // Determine which tracked non-Schengen zones have trips
@@ -111,9 +111,7 @@ export default function Dashboard({ status, trips }: Props) {
                     <span style={{ color: 'var(--color-text)', fontWeight: 500 }}>{name}</span>
                     <span style={{ color: 'var(--color-text-muted)', flex: 1 }}>
                       {formatDate(trip.entryDate, i18n.language)} –{' '}
-                      {trip.exitDate === 'ongoing'
-                        ? t('trips.ongoing')
-                        : formatDate(trip.exitDate, i18n.language)}
+                      {formatDate(trip.exitDate === 'ongoing' ? todayISO : trip.exitDate, i18n.language)}
                     </span>
                     <span style={{ color: 'var(--color-warning)', fontWeight: 600, flexShrink: 0 }}>
                       {dur}d

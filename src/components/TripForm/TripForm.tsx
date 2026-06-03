@@ -22,22 +22,18 @@ interface FormData {
   exitDate: string
   country: string
   notes: string
-  isOngoing: boolean
-  isPlanned: boolean
 }
 
 function emptyForm(): FormData {
-  return { entryDate: '', exitDate: '', country: '', notes: '', isOngoing: false, isPlanned: false }
+  return { entryDate: '', exitDate: '', country: '', notes: '' }
 }
 
 function tripToForm(t: TripEntry): FormData {
   return {
     entryDate: t.entryDate,
-    exitDate: t.exitDate === 'ongoing' ? '' : t.exitDate,
+    exitDate: t.exitDate === 'ongoing' ? today() : t.exitDate,
     country: t.country,
     notes: t.notes ?? '',
-    isOngoing: t.exitDate === 'ongoing',
-    isPlanned: t.isPlanned ?? false,
   }
 }
 
@@ -262,43 +258,43 @@ export default function TripForm({ open, trip, existingTrips, initialDates, onSa
     return () => document.removeEventListener('keydown', handler)
   }, [open, onClose])
 
-  const set = (key: keyof FormData, value: string | boolean) =>
+  const set = (key: keyof FormData, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }))
 
-  const resolvedExit = form.isOngoing ? today() : form.exitDate
   const otherTrips = existingTrips.filter((t) => t.id !== trip?.id)
   const isSchengen = COUNTRY_ZONE[form.country] === 'schengen'
   const otherSchengenTrips = otherTrips.filter((t) => COUNTRY_ZONE[t.country] === 'schengen')
+  const todayISO = today()
 
   const tripDays =
-    form.entryDate && resolvedExit && form.entryDate <= resolvedExit
-      ? differenceInDays(parseISO(resolvedExit), parseISO(form.entryDate)) + 1
+    form.entryDate && form.exitDate && form.entryDate <= form.exitDate
+      ? differenceInDays(parseISO(form.exitDate), parseISO(form.entryDate)) + 1
       : 0
 
   const validationResult =
-    isSchengen && form.entryDate && resolvedExit && form.entryDate <= resolvedExit
-      ? validatePlannedTrip(otherSchengenTrips.filter((t) => !t.isPlanned), form.entryDate, resolvedExit)
+    isSchengen && form.entryDate && form.exitDate && form.entryDate <= form.exitDate
+      ? validatePlannedTrip(otherSchengenTrips.filter((t) => t.entryDate <= todayISO), form.entryDate, form.exitDate)
       : null
 
   const windowTotal =
-    isSchengen && form.entryDate && resolvedExit && form.entryDate <= resolvedExit
+    isSchengen && form.entryDate && form.exitDate && form.entryDate <= form.exitDate
       ? getDaysUsedInWindow(
-          [...otherSchengenTrips, { id: '__preview', entryDate: form.entryDate, exitDate: resolvedExit, country: form.country }],
-          today()
+          [...otherSchengenTrips, { id: '__preview', entryDate: form.entryDate, exitDate: form.exitDate, country: form.country }],
+          todayISO
         )
       : null
 
   const validate = (): boolean => {
     const e: typeof errors = {}
     if (!form.entryDate) e.entryDate = t('form.errors.entryRequired')
-    if (!form.isOngoing && !form.exitDate) e.exitDate = t('form.errors.exitRequired')
+    if (!form.exitDate) e.exitDate = t('form.errors.exitRequired')
     if (!form.country) e.country = t('form.errors.countryRequired')
-    if (form.entryDate && resolvedExit && resolvedExit < form.entryDate)
+    if (form.entryDate && form.exitDate && form.exitDate < form.entryDate)
       e.exitDate = t('form.errors.exitBeforeEntry')
     // NOTE: trips >90 days are now ALLOWED — shown as warnings, not blocking errors
-    if (form.entryDate && resolvedExit) {
+    if (form.entryDate && form.exitDate) {
       const overlap = otherTrips.find((other) =>
-        tripsOverlap(form.entryDate, resolvedExit, other.entryDate, other.exitDate)
+        tripsOverlap(form.entryDate, form.exitDate, other.entryDate, other.exitDate)
       )
       if (overlap) e.general = t('form.errors.overlap')
     }
@@ -311,10 +307,9 @@ export default function TripForm({ open, trip, existingTrips, initialDates, onSa
     if (!validate()) return
     onSave({
       entryDate: form.entryDate,
-      exitDate: form.isOngoing ? 'ongoing' : form.exitDate,
+      exitDate: form.exitDate,
       country: form.country,
       notes: form.notes || undefined,
-      isPlanned: form.isPlanned || undefined,
     })
   }
 
@@ -422,32 +417,18 @@ export default function TripForm({ open, trip, existingTrips, initialDates, onSa
               {errors.entryDate && <p style={errorStyle}>{errors.entryDate}</p>}
             </div>
 
-            {/* Ongoing */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text)' }}>
-              <input type="checkbox" checked={form.isOngoing} onChange={(e) => set('isOngoing', e.target.checked)} />
-              {t('form.ongoingTrip')}
-            </label>
-
             {/* Exit date */}
-            {!form.isOngoing && (
-              <div style={fieldStyle}>
-                <label style={labelStyle}>{t('form.exitDate')}</label>
-                <input
-                  type="date"
-                  value={form.exitDate}
-                  min={form.entryDate}
-                  onChange={(e) => set('exitDate', e.target.value)}
-                  style={inputStyle(!!errors.exitDate)}
-                />
-                {errors.exitDate && <p style={errorStyle}>{errors.exitDate}</p>}
-              </div>
-            )}
-
-            {/* Planned */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--color-text)' }}>
-              <input type="checkbox" checked={form.isPlanned} onChange={(e) => set('isPlanned', e.target.checked)} />
-              {t('trips.planned')}
-            </label>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>{t('form.exitDate')}</label>
+              <input
+                type="date"
+                value={form.exitDate}
+                min={form.entryDate}
+                onChange={(e) => set('exitDate', e.target.value)}
+                style={inputStyle(!!errors.exitDate)}
+              />
+              {errors.exitDate && <p style={errorStyle}>{errors.exitDate}</p>}
+            </div>
 
             {/* Notes */}
             <div style={fieldStyle}>

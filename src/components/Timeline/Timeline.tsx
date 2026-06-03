@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import type { TripEntry } from '../../types'
 import { parseISO, addDays, differenceInDays, format } from 'date-fns'
 import { COUNTRY_FLAGS } from '../../constants/countries'
+import { getTripStatus } from '../../utils/dateUtils'
 
 interface Props {
   trips: TripEntry[]
@@ -100,10 +101,10 @@ export default function Timeline({ trips }: Props) {
                     width: `${Math.max(right - left, 0.5)}%`,
                     top: `${8 + row * 18}px`,
                     height: '14px',
-                    background: trip.isPlanned ? 'transparent' : color,
+                    background: getTripStatus(trip, TODAY_ISO) === 'planned' ? 'transparent' : color,
                     border: `2px solid ${color}`,
                     borderRadius: '4px',
-                    opacity: trip.isPlanned ? 0.6 : 0.85,
+                    opacity: getTripStatus(trip, TODAY_ISO) === 'planned' ? 0.6 : 0.85,
                     cursor: 'default',
                   }}
                 />

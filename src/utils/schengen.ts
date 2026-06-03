@@ -42,7 +42,7 @@ export function getDaysUsedInWindow(
 ): number {
   const winStart = toISO(addDays(parse(refISO), -179))
   return trips
-    .filter((t) => !t.isPlanned || includePlanned)
+    .filter((t) => t.entryDate <= refISO || includePlanned)
     .reduce(
       (sum, t) =>
         sum + countOverlapDays(t.entryDate, resolveExit(t, refISO), winStart, refISO),
@@ -58,7 +58,7 @@ export function getResetEvents(trips: TripEntry[], todayISO: string): ResetEvent
   const today = parse(todayISO)
   const releaseCounts = new Map<string, number>()
 
-  for (const trip of trips.filter((t) => !t.isPlanned)) {
+  for (const trip of trips.filter((t) => t.entryDate <= todayISO)) {
     const entry = parse(trip.entryDate)
     const exit = parse(resolveExit(trip, todayISO))
     // Only past/current days contribute to future releases
@@ -101,13 +101,11 @@ export function validatePlannedTrip(
     return { isValid: false, maxSafeDays: 90 }
   }
 
-  const nonPlanned = existing.filter((t) => !t.isPlanned)
-
   for (let i = 0; i < totalDays; i++) {
     const dayISO = toISO(addDays(entry, i))
     const winStart = toISO(addDays(parse(dayISO), -179))
 
-    const existingDays = nonPlanned.reduce(
+    const existingDays = existing.reduce(
       (sum, t) =>
         sum + countOverlapDays(t.entryDate, resolveExit(t, dayISO), winStart, dayISO),
       0

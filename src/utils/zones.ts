@@ -32,7 +32,7 @@ function rollingStatus(zone: TrackedZone, trips: TripEntry[], limitDays: number,
   const todayISO = today()
   const winStart = format(addDays(parseISO(todayISO), -(windowDays - 1)), 'yyyy-MM-dd')
   const daysUsed = trips
-    .filter((t) => !t.isPlanned)
+    .filter((t) => t.entryDate <= todayISO)
     .reduce((sum, t) => {
       const exit = t.exitDate === 'ongoing' ? todayISO : t.exitDate
       return sum + countOverlapDays(t.entryDate, exit, winStart, todayISO)
@@ -46,16 +46,17 @@ function rollingStatus(zone: TrackedZone, trips: TripEntry[], limitDays: number,
 }
 
 function perEntryStatus(zone: TrackedZone, trips: TripEntry[], limitDays: number): ZoneStatus {
-  const nonPlanned = trips.filter((t) => !t.isPlanned)
+  const todayISO = today()
+  const active = trips.filter((t) => t.entryDate <= todayISO)
   const base = { zone, limitDays, windowDays: 0, windowType: 'per_entry' as const }
 
-  const ongoing = nonPlanned.find((t) => t.exitDate === 'ongoing')
+  const ongoing = active.find((t) => t.exitDate === 'ongoing' || t.exitDate >= todayISO)
   if (ongoing) {
     const daysUsed = differenceInDays(parseISO(today()), parseISO(ongoing.entryDate)) + 1
     return { ...base, daysUsed, daysRemaining: Math.max(0, limitDays - daysUsed), isOverLimit: daysUsed > limitDays }
   }
 
-  const last = [...nonPlanned].sort((a, b) => b.exitDate.localeCompare(a.exitDate))[0]
+  const last = [...active].sort((a, b) => b.exitDate.localeCompare(a.exitDate))[0]
   if (!last) {
     return { ...base, daysUsed: 0, daysRemaining: limitDays, isOverLimit: false }
   }

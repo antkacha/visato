@@ -2,6 +2,7 @@ import { AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import type { TripEntry } from '../../types'
 import TripCard from './TripCard'
+import { getTripStatus, today } from '../../utils/dateUtils'
 
 interface Props {
   trips: TripEntry[]
@@ -13,9 +14,12 @@ interface Props {
 export default function TripList({ trips, onAdd, onEdit, onDelete }: Props) {
   const { t } = useTranslation()
 
+  const todayISO = today()
   const sorted = [...trips].sort((a, b) => {
-    // Planned trips at bottom, then newest first
-    if (a.isPlanned !== b.isPlanned) return a.isPlanned ? 1 : -1
+    const sa = getTripStatus(a, todayISO)
+    const sb = getTripStatus(b, todayISO)
+    if (sa === 'planned' && sb !== 'planned') return 1
+    if (sa !== 'planned' && sb === 'planned') return -1
     return b.entryDate.localeCompare(a.entryDate)
   })
 

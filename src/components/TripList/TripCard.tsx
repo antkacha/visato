@@ -2,10 +2,9 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Pencil, Trash2 } from 'lucide-react'
 import type { TripEntry } from '../../types'
-import { formatDate } from '../../utils/dateUtils'
+import { formatDate, getTripStatus, today } from '../../utils/dateUtils'
 import { COUNTRY_FLAGS } from '../../constants/countries'
 import { differenceInDays, parseISO } from 'date-fns'
-import { today } from '../../utils/dateUtils'
 
 interface Props {
   trip: TripEntry
@@ -14,21 +13,16 @@ interface Props {
 }
 
 function getTripDays(trip: TripEntry): number {
-  const exit = trip.exitDate === 'ongoing' ? today() : trip.exitDate
+  const todayISO = today()
+  const exit = trip.exitDate === 'ongoing' ? todayISO : trip.exitDate
   return differenceInDays(parseISO(exit), parseISO(trip.entryDate)) + 1
-}
-
-function getTripLabel(trip: TripEntry): 'past' | 'planned' | 'ongoing' {
-  if (trip.exitDate === 'ongoing') return 'ongoing'
-  if (trip.isPlanned) return 'planned'
-  return 'past'
 }
 
 export default function TripCard({ trip, onEdit, onDelete }: Props) {
   const { t, i18n } = useTranslation()
   const shouldReduceMotion = useReducedMotion()
   const days = getTripDays(trip)
-  const label = getTripLabel(trip)
+  const label = getTripStatus(trip, today())
   const flag = COUNTRY_FLAGS[trip.country] ?? '🏳️'
   const countryName = t(`countries.${trip.country}`, { defaultValue: trip.country })
   const isViolation = days > 90 && label !== 'planned'
@@ -55,7 +49,7 @@ export default function TripCard({ trip, onEdit, onDelete }: Props) {
       transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.25 }}
       style={{
         background: 'var(--color-surface)',
-        border: trip.isPlanned ? '1.5px dashed var(--color-border)' : '1px solid var(--color-border)',
+        border: label === 'planned' ? '1.5px dashed var(--color-border)' : '1px solid var(--color-border)',
         borderRadius: '0.75rem',
         padding: '0.875rem 1rem',
         display: 'flex',
@@ -89,9 +83,9 @@ export default function TripCard({ trip, onEdit, onDelete }: Props) {
         </div>
         <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
           {formatDate(trip.entryDate, i18n.language)} –{' '}
-          {trip.exitDate === 'ongoing'
+          {label === 'ongoing' && trip.exitDate === 'ongoing'
             ? t('trips.ongoing')
-            : formatDate(trip.exitDate, i18n.language)}
+            : formatDate(trip.exitDate === 'ongoing' ? today() : trip.exitDate, i18n.language)}
         </p>
         {trip.notes && (
           <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>

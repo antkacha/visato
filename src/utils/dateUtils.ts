@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns'
 import { enUS, ru, uk, type Locale } from 'date-fns/locale'
+import type { TripEntry } from '../types'
 
 const LOCALES: Record<string, Locale> = { en: enUS, uk, ru }
 
@@ -21,4 +22,11 @@ export function formatDateShort(isoDate: string, lng = 'en'): string {
   } catch {
     return isoDate
   }
+}
+
+export function getTripStatus(trip: TripEntry, todayISO: string): 'past' | 'ongoing' | 'planned' {
+  if (trip.entryDate > todayISO) return 'planned'
+  const exit = trip.exitDate === 'ongoing' ? todayISO : trip.exitDate
+  if (exit >= todayISO) return 'ongoing'
+  return 'past'
 }
