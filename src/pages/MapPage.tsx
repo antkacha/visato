@@ -34,13 +34,13 @@ const THEME = {
     statBg: 'rgba(13,20,36,0.85)',
   },
   light: {
-    bg: '#e8f4fd',
-    ocean: '#a8d4f0',
+    bg: '#F0FAF6',
+    ocean: '#C8E8DC',
     visited: '#2DBF8A',
-    unvisited: '#d1dce8',
-    border: 'rgba(0,0,0,0.08)',
-    atmosphere: '#7ab8e0',
-    statBg: 'rgba(255,255,255,0.9)',
+    unvisited: '#D1D5DB',
+    border: 'rgba(0,0,0,0.07)',
+    atmosphere: '#2DBF8A',
+    statBg: 'rgba(255,255,255,0.92)',
   },
 }
 

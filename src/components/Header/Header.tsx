@@ -57,8 +57,8 @@ export default function Header({
       }}
     >
       <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-        {/* Left: logo + trip count */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Left: logo — always links home */}
+        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }} className="shrink-0">
           <span className="text-xl">🌍</span>
           <span
             className="font-bold text-base hidden sm:inline"
@@ -66,30 +66,32 @@ export default function Header({
           >
             Visato
           </span>
-        </div>
+        </Link>
 
         {/* Right: auth + controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 justify-end">
-          {/* Map link */}
-          <Link
-            to={isMap ? '/' : '/map'}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-              padding: '0.375rem 0.75rem',
-              borderRadius: '0.5rem',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              textDecoration: 'none',
-              border: '1px solid var(--color-border)',
-              background: isMap ? 'var(--color-accent)' : 'transparent',
-              color: isMap ? '#fff' : 'var(--color-text-muted)',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            🌍 {isMap ? t('header.backHome', { defaultValue: 'Home' }) : t('map.navLink')}
-          </Link>
+          {/* My Map link — only when not already on the map */}
+          {!isMap && (
+            <Link
+              to="/map"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                padding: '0.375rem 0.75rem',
+                borderRadius: '0.5rem',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                textDecoration: 'none',
+                border: '1px solid var(--color-border)',
+                background: 'transparent',
+                color: 'var(--color-text-muted)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              🗺 {t('map.navLink')}
+            </Link>
+          )}
           {/* Auth button — most prominent action */}
           <AuthButton
             user={user}
