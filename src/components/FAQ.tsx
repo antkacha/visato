@@ -41,7 +41,7 @@ const ITEMS = [
 
 function Item({ q, a, open, onToggle }: { q: string; a: string; open: boolean; onToggle: () => void }) {
   return (
-    <div style={{ borderBottom: '1px solid #C8EAD9' }}>
+    <div style={{ borderBottom: '1px solid var(--color-border)' }}>
       <button
         onClick={onToggle}
         style={{
@@ -57,7 +57,7 @@ function Item({ q, a, open, onToggle }: { q: string; a: string; open: boolean; o
           gap: '1rem',
         }}
       >
-        <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#1A7A59', lineHeight: 1.4 }}>
+        <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--color-text)', lineHeight: 1.4 }}>
           {q}
         </span>
         <span
@@ -66,8 +66,8 @@ function Item({ q, a, open, onToggle }: { q: string; a: string; open: boolean; o
             width: '1.375rem',
             height: '1.375rem',
             borderRadius: '50%',
-            background: open ? '#2DBF8A' : '#C8EAD9',
-            color: open ? '#fff' : '#1A7A59',
+            background: open ? '#2DBF8A' : 'var(--color-border)',
+            color: open ? '#fff' : 'var(--color-text-muted)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -84,7 +84,7 @@ function Item({ q, a, open, onToggle }: { q: string; a: string; open: boolean; o
         <p
           style={{
             margin: '0 0 1rem',
-            color: '#3D6659',
+            color: 'var(--color-text-muted)',
             fontSize: '0.875rem',
             lineHeight: 1.7,
             paddingRight: '2rem',
@@ -100,12 +100,12 @@ function Item({ q, a, open, onToggle }: { q: string; a: string; open: boolean; o
 export default function FAQ() {
   const [openIdx, setOpenIdx] = useState<number | null>(null)
   return (
-    <section style={{ background: '#F0FAF6', borderTop: '1px solid #C8EAD9' }}>
-      <div style={{ maxWidth: '52rem', margin: '0 auto', padding: '3.5rem 1.25rem 4rem' }}>
-        <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: '#1A7A59', margin: '0 0 0.25rem' }}>
+    <section style={{ borderTop: '1px solid var(--color-border)' }}>
+      <div style={{ maxWidth: '52rem', margin: '0 auto', padding: '3rem 1.25rem 3.5rem' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 0.25rem' }}>
           Frequently Asked Questions
         </h2>
-        <p style={{ color: '#3D6659', fontSize: '0.875rem', margin: '0 0 1.5rem' }}>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', margin: '0 0 1.25rem' }}>
           Everything you need to know about Schengen rules and Visato.
         </p>
         {ITEMS.map((item, i) => (

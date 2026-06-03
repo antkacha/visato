@@ -54,59 +54,9 @@ function App() {
   }
 
   return (
-    <>
-      {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <section style={{ background: '#F0FAF6', borderBottom: '1px solid #C8EAD9' }}>
-        <div
-          style={{
-            maxWidth: '52rem',
-            margin: '0 auto',
-            padding: '4rem 1.25rem 3.5rem',
-            textAlign: 'center',
-          }}
-        >
-          <div style={{ fontSize: '2.75rem', marginBottom: '0.75rem' }}>🌍</div>
-          <h1
-            style={{
-              fontSize: 'clamp(2.75rem, 8vw, 4.5rem)',
-              fontWeight: 800,
-              color: '#1A7A59',
-              lineHeight: 1.05,
-              letterSpacing: '-0.03em',
-              margin: '0 0 0.875rem',
-            }}
-          >
-            Visato
-          </h1>
-          <p
-            style={{
-              fontSize: 'clamp(1.0625rem, 2.5vw, 1.25rem)',
-              fontWeight: 600,
-              color: '#2DBF8A',
-              margin: '0 0 1rem',
-              lineHeight: 1.4,
-            }}
-          >
-            Track your Schengen days. Log every adventure.
-          </p>
-          <p
-            style={{
-              fontSize: '0.9375rem',
-              color: '#3D6659',
-              lineHeight: 1.7,
-              maxWidth: '540px',
-              margin: '0 auto',
-            }}
-          >
-            Visato automatically tracks the 90/180-day Schengen rule so you never overstay.
-            Add past and upcoming trips, check days remaining, and plan future stays safely.
-            Supports 196 countries including the UK, USA, Turkey, UAE, Thailand, and Georgia.
-          </p>
-        </div>
-      </section>
+    <div style={{ background: 'var(--color-bg)', minHeight: '100dvh' }}>
 
-      {/* ── App ───────────────────────────────────────────────────────── */}
-      <div style={{ background: 'var(--color-bg)', minHeight: '60vh' }}>
+      {/* ── Sticky nav — controls at the very top ─────────────────────── */}
       <Header
         theme={theme}
         language={language}
@@ -123,6 +73,47 @@ function App() {
         tripCount={trips.length}
       />
 
+      {/* ── Hero — sits directly below the nav, no break ──────────────── */}
+      <section style={{ borderBottom: '1px solid var(--color-border)', padding: '2rem 1.25rem 1.75rem', textAlign: 'center' }}>
+        <h1
+          style={{
+            fontSize: 'clamp(2rem, 6vw, 3rem)',
+            fontWeight: 800,
+            color: '#2DBF8A',
+            lineHeight: 1.1,
+            letterSpacing: '-0.02em',
+            margin: '0 0 0.5rem',
+          }}
+        >
+          Track your Schengen days.
+        </h1>
+        <p
+          style={{
+            fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
+            fontWeight: 600,
+            color: 'var(--color-text)',
+            margin: '0 0 0.625rem',
+            lineHeight: 1.4,
+          }}
+        >
+          Log every adventure.
+        </p>
+        <p
+          style={{
+            fontSize: '0.875rem',
+            color: 'var(--color-text-muted)',
+            lineHeight: 1.65,
+            maxWidth: '480px',
+            margin: '0 auto',
+          }}
+        >
+          Automatically calculates the 90/180-day Schengen rule.
+          Add trips, check days remaining, and plan future stays.
+          Supports 196 countries including the UK, USA, Turkey, UAE, Thailand, and Georgia.
+        </p>
+      </section>
+
+      {/* ── App content — flows directly from hero ────────────────────── */}
       <main
         className="max-w-4xl mx-auto px-4 pb-16 pt-6 space-y-6"
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -155,7 +146,6 @@ function App() {
           onDelete={deleteTrip}
         />
       </main>
-      </div>
 
       {/* ── FAQ ───────────────────────────────────────────────────────── */}
       <FAQ />
@@ -163,16 +153,14 @@ function App() {
       {/* ── Footer ────────────────────────────────────────────────────── */}
       <footer
         style={{
-          background: '#1A7A59',
+          borderTop: '1px solid var(--color-border)',
           padding: '1.25rem',
           textAlign: 'center',
-          color: 'rgba(255,255,255,0.75)',
+          color: 'var(--color-text-muted)',
           fontSize: '0.8125rem',
         }}
       >
-        Made with{' '}
-        <span style={{ color: '#F5C842' }}>♥</span>
-        {' '}by Visato
+        Made with <span style={{ color: '#2DBF8A' }}>♥</span> by Visato
       </footer>
 
       <TripForm
@@ -189,7 +177,7 @@ function App() {
         onResidencyChange={setResidencyStatus}
         onClose={() => setSettingsOpen(false)}
       />
-    </>
+    </div>
   )
 }
 
