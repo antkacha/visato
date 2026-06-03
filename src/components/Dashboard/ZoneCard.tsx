@@ -16,11 +16,6 @@ const ZONE_FLAG: Record<TrackedZone, string> = {
   georgia:  '🇬🇪',
 }
 
-function ruleLabel(zone: TrackedZone, t: (k: string, opts?: object) => string): string {
-  const { limitDays, windowDays, windowType } = ZONE_CONFIGS[zone]
-  if (windowType === 'per_entry') return t('zones.rulePerEntry', { limit: limitDays })
-  return t('zones.ruleRolling', { limit: limitDays, window: windowDays })
-}
 
 function barColor(remaining: number, isOverLimit: boolean): string {
   if (isOverLimit || remaining === 0) return 'var(--color-danger)'
@@ -34,6 +29,10 @@ export default function ZoneCard({ status }: Props) {
   const { zone, daysUsed, daysRemaining, limitDays, windowDays, isOverLimit, windowType } = status
   const fraction = Math.min(daysUsed / limitDays, 1)
   const color = barColor(daysRemaining, isOverLimit)
+  const { windowType: cfgType, windowDays: cfgWindow } = ZONE_CONFIGS[zone]
+  const ruleText = cfgType === 'per_entry'
+    ? t('zones.rulePerEntry', { limit: limitDays })
+    : t('zones.ruleRolling', { limit: limitDays, window: cfgWindow })
 
   return (
     <div className="glass-card p-5">
@@ -45,7 +44,7 @@ export default function ZoneCard({ status }: Props) {
             {t(`zones.${zone}`)}
           </span>
           <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            · {ruleLabel(zone, t)}
+            · {ruleText}
           </span>
         </div>
         {isOverLimit && (
