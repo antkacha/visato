@@ -31,7 +31,9 @@
     "days_other": "{{count}} days",
     "daysUnit_one": "day",
     "daysUnit_other": "days",
-    "empty": "No trips recorded yet"
+    "empty": "No trips recorded yet",
+    "showMore": "Show more ({{count}})",
+    "showLess": "Show less"
   },
   "form": {
     "addTitle": "Add trip",

@@ -35,7 +35,9 @@
     "daysUnit_few": "дні",
     "daysUnit_many": "днів",
     "daysUnit_other": "днів",
-    "empty": "Поїздок ще не додано"
+    "empty": "Поїздок ще не додано",
+    "showMore": "Показати ще ({{count}})",
+    "showLess": "Згорнути"
   },
   "form": {
     "addTitle": "Додати поїздку",

@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import type { TripEntry } from '../../types'
 import TripCard from './TripCard'
 import { getTripStatus, today } from '../../utils/dateUtils'
+
+const PAST_VISIBLE_DEFAULT = 3
 
 interface Props {
   trips: TripEntry[]
@@ -13,6 +16,7 @@ interface Props {
 
 export default function TripList({ trips, onAdd, onEdit, onDelete }: Props) {
   const { t } = useTranslation()
+  const [showAllPast, setShowAllPast] = useState(false)
 
   const todayISO = today()
   const STATUS_ORDER = { ongoing: 0, planned: 1, past: 2 }
@@ -22,6 +26,12 @@ export default function TripList({ trips, onAdd, onEdit, onDelete }: Props) {
     if (sa !== sb) return STATUS_ORDER[sa] - STATUS_ORDER[sb]
     return b.entryDate.localeCompare(a.entryDate)
   })
+
+  const nonPast = sorted.filter((t) => getTripStatus(t, todayISO) !== 'past')
+  const past = sorted.filter((t) => getTripStatus(t, todayISO) === 'past')
+  const visiblePast = showAllPast ? past : past.slice(0, PAST_VISIBLE_DEFAULT)
+  const hiddenCount = past.length - PAST_VISIBLE_DEFAULT
+  const visible = [...nonPast, ...visiblePast]
 
   return (
     <section>
@@ -66,7 +76,7 @@ export default function TripList({ trips, onAdd, onEdit, onDelete }: Props) {
       ) : (
         <div className="space-y-2">
           <AnimatePresence mode="popLayout">
-            {sorted.map((trip) => (
+            {visible.map((trip) => (
               <TripCard
                 key={trip.id}
                 trip={trip}
@@ -75,6 +85,29 @@ export default function TripList({ trips, onAdd, onEdit, onDelete }: Props) {
               />
             ))}
           </AnimatePresence>
+
+          {hiddenCount > 0 && (
+            <button
+              onClick={() => setShowAllPast((p) => !p)}
+              style={{
+                display: 'block',
+                width: '100%',
+                marginTop: '0.25rem',
+                padding: '0.5rem',
+                background: 'transparent',
+                border: '1px solid var(--color-border)',
+                borderRadius: '0.5rem',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: 'var(--color-text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              {showAllPast
+                ? t('trips.showLess')
+                : t('trips.showMore', { count: hiddenCount })}
+            </button>
+          )}
         </div>
       )}
     </section>
