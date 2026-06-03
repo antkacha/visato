@@ -36,13 +36,12 @@ function Item({ q, a, open, onToggle }: { q: string; a: string; open: boolean; o
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1rem',
-            fontWeight: 700,
-            lineHeight: 1,
             transition: 'background 0.3s ease, color 0.3s ease',
           }}
         >
-          +
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ display: 'block' }}>
+            <path d="M5 1V9M1 5H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
         </motion.span>
       </button>
 
