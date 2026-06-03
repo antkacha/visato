@@ -4,7 +4,7 @@
     "daysUsed": "Days used",
     "daysRemaining": "Days remaining",
     "window": "Window: {{start}} – {{end}}",
-    "maxStay": "Max consecutive days from today",
+    "maxStay": "Days available to stay",
     "noTrips": "No trips yet. Add your first trip to get started.",
     "overLimit": "Over the 90-day limit!",
     "violations": "Past violations",
