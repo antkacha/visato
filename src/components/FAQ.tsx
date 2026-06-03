@@ -69,7 +69,7 @@ export default function FAQ() {
   }))
 
   return (
-    <section style={{ background: '#FFFFFF' }}>
+    <section style={{ background: 'var(--color-section)' }}>
       <div style={{ maxWidth: '52rem', margin: '0 auto', padding: '5rem 1.25rem' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 0.25rem' }}>
           {t('faq.title')}
