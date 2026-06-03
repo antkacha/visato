@@ -3,7 +3,6 @@ import type { TripEntry, SchengenStatus } from '../types'
 import {
   getDaysUsedInWindow,
   getResetEvents,
-  getMaxConsecutiveDays,
 } from '../utils/schengen'
 import { today } from '../utils/dateUtils'
 import { addDays, format, parseISO } from 'date-fns'
@@ -16,14 +15,12 @@ export function useSchengen(trips: TripEntry[]): SchengenStatus {
     const windowStart = format(addDays(parseISO(todayISO), -179), 'yyyy-MM-dd')
     const resets = getResetEvents(trips, todayISO)
 
-    // For max consecutive days: start from tomorrow and treat ongoing trips as
-    // ending today — otherwise their future days double-count with the hypothetical
-    // new trip, significantly underestimating available capacity.
-    const tomorrowISO = format(addDays(parseISO(todayISO), 1), 'yyyy-MM-dd')
-    const tripsForMax = trips.map((t) =>
-      t.exitDate === 'ongoing' ? { ...t, exitDate: todayISO } : t
-    )
-    const maxConsecutiveDays = getMaxConsecutiveDays(tripsForMax, tomorrowISO)
+    // maxConsecutiveDays = days remaining in the current 90-day quota.
+    // Using daysRemaining directly ensures it is always consistent with daysUsed
+    // (maxConsecutiveDays + daysUsed never exceeds 90).
+    // The iterative rolling-window approach allowed values > 90-daysUsed by counting
+    // future days of ongoing trips AND a hypothetical new trip simultaneously.
+    const maxConsecutiveDays = daysRemaining
 
     return {
       daysUsed,
