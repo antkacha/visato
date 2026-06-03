@@ -50,7 +50,7 @@ export default function Header({
   return (
     <header
       style={{
-        background: '#fff',
+        background: 'var(--color-section)',
         borderBottom: '1px solid var(--color-border)',
         position: 'sticky',
         top: 0,
@@ -70,7 +70,7 @@ export default function Header({
           {tripCount > 0 && (
             <span
               className="text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{ background: 'rgba(45,191,138,0.15)', color: '#1A7A59' }}
+              style={{ background: 'rgba(45,191,138,0.15)', color: '#2DBF8A' }}
             >
               {tripCount}
             </span>

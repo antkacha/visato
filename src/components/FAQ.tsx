@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 
 function Item({ q, a, open, onToggle }: { q: string; a: string; open: boolean; onToggle: () => void }) {
@@ -22,7 +23,9 @@ function Item({ q, a, open, onToggle }: { q: string; a: string; open: boolean; o
         <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--color-text)', lineHeight: 1.4 }}>
           {q}
         </span>
-        <span
+        <motion.span
+          animate={{ rotate: open ? 45 : 0 }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
           style={{
             flexShrink: 0,
             width: '1.375rem',
@@ -36,25 +39,36 @@ function Item({ q, a, open, onToggle }: { q: string; a: string; open: boolean; o
             fontSize: '1rem',
             fontWeight: 700,
             lineHeight: 1,
-            transition: 'background 0.15s',
+            transition: 'background 0.3s ease, color 0.3s ease',
           }}
         >
-          {open ? '−' : '+'}
-        </span>
+          +
+        </motion.span>
       </button>
-      {open && (
-        <p
-          style={{
-            margin: '0 0 1rem',
-            color: 'var(--color-text-muted)',
-            fontSize: '0.875rem',
-            lineHeight: 1.7,
-            paddingRight: '2rem',
-          }}
-        >
-          {a}
-        </p>
-      )}
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <p
+              style={{
+                margin: '0 0 1rem',
+                color: 'var(--color-text-muted)',
+                fontSize: '0.875rem',
+                lineHeight: 1.7,
+                paddingRight: '2rem',
+              }}
+            >
+              {a}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
