@@ -87,13 +87,13 @@ function App() {
         }
       `}</style>
 
-      <section>
+      <section style={{ background: '#FFFFFF' }}>
         <div
           className="hero-grid"
           style={{
             maxWidth: '60rem',
             margin: '0 auto',
-            padding: '4rem 1.5rem',
+            padding: '5rem 1.5rem',
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
             gap: '3rem',
@@ -215,7 +215,7 @@ function App() {
 
       {/* ── App content — flows directly from hero ────────────────────── */}
       <main
-        className="max-w-4xl mx-auto px-4 pb-16 pt-6 space-y-6"
+        className="max-w-4xl mx-auto px-4 pt-20 pb-20 space-y-6"
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {...(formOpen || settingsOpen ? ({ inert: true } as any) : {})}
       >
@@ -253,8 +253,8 @@ function App() {
       {/* ── Footer ────────────────────────────────────────────────────── */}
       <footer
         style={{
-          borderTop: '1px solid var(--color-border)',
-          padding: '1.25rem',
+          background: '#F0FAF6',
+          padding: '2.5rem 1.25rem',
           textAlign: 'center',
           color: 'var(--color-text-muted)',
           fontSize: '0.8125rem',
