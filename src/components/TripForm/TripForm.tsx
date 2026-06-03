@@ -12,6 +12,7 @@ interface Props {
   open: boolean
   trip: TripEntry | null
   existingTrips: TripEntry[]
+  initialDates?: { entryDate: string; exitDate: string }
   onSave: (data: Omit<TripEntry, 'id'>) => void
   onClose: () => void
 }
@@ -235,7 +236,7 @@ function CountryCombobox({ value, onChange, error }: ComboboxProps) {
 }
 
 /* ─── Main form ───────────────────────────────────────────────────────────── */
-export default function TripForm({ open, trip, existingTrips, onSave, onClose }: Props) {
+export default function TripForm({ open, trip, existingTrips, initialDates, onSave, onClose }: Props) {
   const { t } = useTranslation()
   const shouldReduceMotion = useReducedMotion()
   const [form, setForm] = useState<FormData>(emptyForm())
@@ -243,10 +244,16 @@ export default function TripForm({ open, trip, existingTrips, onSave, onClose }:
 
   useEffect(() => {
     if (open) {
-      setForm(trip ? tripToForm(trip) : emptyForm())
+      if (trip) {
+        setForm(tripToForm(trip))
+      } else if (initialDates) {
+        setForm({ ...emptyForm(), entryDate: initialDates.entryDate, exitDate: initialDates.exitDate })
+      } else {
+        setForm(emptyForm())
+      }
       setErrors({})
     }
-  }, [open, trip])
+  }, [open, trip, initialDates])
 
   useEffect(() => {
     if (!open) return

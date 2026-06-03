@@ -25,6 +25,7 @@ function App() {
 
   const [formOpen, setFormOpen] = useState(false)
   const [editingTrip, setEditingTrip] = useState<TripEntry | null>(null)
+  const [formInitialDates, setFormInitialDates] = useState<{ entryDate: string; exitDate: string } | undefined>()
   const [langFading, setLangFading] = useState(false)
 
   const handleLanguageChange = (lang: 'en' | 'uk' | 'ru') => {
@@ -44,6 +45,7 @@ function App() {
   const handleFormClose = () => {
     setFormOpen(false)
     setEditingTrip(null)
+    setFormInitialDates(undefined)
   }
 
   const handleFormSave = (data: Omit<TripEntry, 'id'>) => {
@@ -225,7 +227,10 @@ function App() {
         {...(formOpen ? ({ inert: true } as any) : {})}
       >
         <Dashboard status={status} trips={trips} />
-        <TripChecker trips={schengenTrips} onAddTrip={addTrip} />
+        <TripChecker
+          trips={schengenTrips}
+          onOpenForm={(dates) => { setFormInitialDates(dates); setFormOpen(true) }}
+        />
         <Timeline trips={trips} />
         <TripList
           trips={trips}
@@ -257,6 +262,7 @@ function App() {
         open={formOpen}
         trip={editingTrip}
         existingTrips={trips}
+        initialDates={formInitialDates}
         onSave={handleFormSave}
         onClose={handleFormClose}
       />

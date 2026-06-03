@@ -7,10 +7,10 @@ import { formatDate } from '../../utils/dateUtils'
 
 interface Props {
   trips: TripEntry[]
-  onAddTrip: (trip: Omit<TripEntry, 'id'>) => void
+  onOpenForm: (dates: { entryDate: string; exitDate: string }) => void
 }
 
-export default function TripChecker({ trips, onAddTrip }: Props) {
+export default function TripChecker({ trips, onOpenForm }: Props) {
   const { t, i18n } = useTranslation()
   const shouldReduceMotion = useReducedMotion()
   const [startDate, setStartDate] = useState('')
@@ -33,7 +33,7 @@ export default function TripChecker({ trips, onAddTrip }: Props) {
 
   const handleAddTrip = () => {
     if (!startDate || !endDate) return
-    onAddTrip({ entryDate: startDate, exitDate: endDate, country: 'france', isPlanned: true })
+    onOpenForm({ entryDate: startDate, exitDate: endDate })
     setResult(null)
     setStartDate('')
     setEndDate('')
