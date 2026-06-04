@@ -114,9 +114,10 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
       <button
         onClick={onSignIn}
         title={t('auth.signInTitle')}
+        className="px-2 sm:px-3 py-1.5"
         style={{
-          display: 'flex', alignItems: 'center', gap: '0.4rem',
-          padding: '0.375rem 0.75rem', borderRadius: '0.5rem',
+          display: 'flex', alignItems: 'center', gap: '0.375rem',
+          borderRadius: '0.5rem',
           background: 'var(--color-accent)', border: 'none',
           color: '#fff', fontSize: '0.75rem', fontWeight: 600,
           cursor: 'pointer', whiteSpace: 'nowrap',

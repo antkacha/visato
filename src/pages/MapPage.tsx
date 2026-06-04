@@ -406,8 +406,8 @@ export default function MapPage({ trips, user }: Props) {
 
   // ── Computed layout ─────────────────────────────────────────────────
   const globeH = Math.max(dims.h - 120 - TOGGLE_H, 200)
-  // 2D map: full container width, ~60% of that as height (Been-app aspect ratio)
-  const mapH   = Math.min(Math.round(dims.w * 0.6), globeH)
+  // 2D map fills the full container height so there's no dead space on mobile
+  const mapH   = globeH
   const toggleBg    = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
   const inactiveClr = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)'
 
@@ -587,7 +587,7 @@ export default function MapPage({ trips, user }: Props) {
                     width={dims.w}
                     height={mapH}
                     projectionConfig={{ scale: 155, center: [0, 10] }}
-                    style={{ display: 'block', width: '100%', height: `${mapH}px`, background: 'transparent' }}
+                    style={{ display: 'block', width: '100%', height: '100%', background: 'transparent' }}
                   >
                     <g
                       style={{
