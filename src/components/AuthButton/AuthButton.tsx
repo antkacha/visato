@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import type { User } from '@supabase/supabase-js'
 
 interface Props {
@@ -84,6 +85,7 @@ const menuItem = (
 
 export default function AuthButton({ user, authLoading, syncing, onSignIn, onSignOut }: Props) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -204,8 +206,8 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
 
             {divider}
 
-            {/* Profile — placeholder for future page */}
-            {menuItem(<PersonIcon />, t('auth.profile'), () => setOpen(false))}
+            {/* Profile */}
+            {menuItem(<PersonIcon />, t('auth.profile'), () => { setOpen(false); navigate('/profile') })}
 
             {divider}
 

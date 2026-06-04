@@ -4,6 +4,27 @@ const TRIPS_KEY = 'schengen_trips'
 const SETTINGS_KEY = 'schengen_settings'
 const MIGRATION_V2_KEY = 'schengen_migration_v2'
 const MIGRATION_V3_KEY = 'schengen_migration_v3'
+const PROFILE_KEY = 'visato_user_profile'
+
+export interface UserProfileData {
+  displayName: string
+  homeCountry: string
+  bio: string
+}
+
+export function loadProfile(): UserProfileData {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY)
+    if (!raw) return { displayName: '', homeCountry: '', bio: '' }
+    return { displayName: '', homeCountry: '', bio: '', ...JSON.parse(raw) }
+  } catch {
+    return { displayName: '', homeCountry: '', bio: '' }
+  }
+}
+
+export function saveProfile(data: UserProfileData): void {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(data))
+}
 
 const DEFAULT_SETTINGS: AppSettings = { theme: 'light', language: 'en' }
 

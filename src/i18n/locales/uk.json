@@ -359,5 +359,27 @@
   "nav": {
     "home": "Головна",
     "map": "Моя карта"
+  },
+  "profile": {
+    "title": "Профіль",
+    "memberSince": "Учасник з",
+    "signInRequired": "Увійдіть, щоб переглянути профіль",
+    "noTopCountry": "Поїздок ще немає",
+    "stats": {
+      "countries": "Країни",
+      "trips": "Поїздки",
+      "days": "Днів за кордоном",
+      "topCountry": "Найбільше відвідувана"
+    },
+    "personal": {
+      "title": "Особиста інформація",
+      "displayName": "Ім'я",
+      "homeCountry": "Країна проживання",
+      "homeCountryPlaceholder": "Оберіть країну",
+      "bio": "Про мене",
+      "bioPlaceholder": "Розкажіть про себе…",
+      "save": "Зберегти",
+      "saved": "Збережено!"
+    }
   }
 }

@@ -351,5 +351,27 @@
   "nav": {
     "home": "Home",
     "map": "My Map"
+  },
+  "profile": {
+    "title": "Profile",
+    "memberSince": "Member since",
+    "signInRequired": "Sign in to view your profile",
+    "noTopCountry": "No trips yet",
+    "stats": {
+      "countries": "Countries",
+      "trips": "Trips",
+      "days": "Days abroad",
+      "topCountry": "Most visited"
+    },
+    "personal": {
+      "title": "Personal info",
+      "displayName": "Display name",
+      "homeCountry": "Home country",
+      "homeCountryPlaceholder": "Select a country",
+      "bio": "About me",
+      "bioPlaceholder": "Tell us a bit about yourself…",
+      "save": "Save changes",
+      "saved": "Saved!"
+    }
   }
 }

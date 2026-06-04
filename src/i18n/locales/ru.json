@@ -359,5 +359,27 @@
   "nav": {
     "home": "Главная",
     "map": "Моя карта"
+  },
+  "profile": {
+    "title": "Профиль",
+    "memberSince": "Участник с",
+    "signInRequired": "Войдите, чтобы просмотреть профиль",
+    "noTopCountry": "Поездок ещё нет",
+    "stats": {
+      "countries": "Страны",
+      "trips": "Поездки",
+      "days": "Дней за рубежом",
+      "topCountry": "Больше всего посещалась"
+    },
+    "personal": {
+      "title": "Личная информация",
+      "displayName": "Имя",
+      "homeCountry": "Страна проживания",
+      "homeCountryPlaceholder": "Выберите страну",
+      "bio": "О себе",
+      "bioPlaceholder": "Расскажите о себе…",
+      "save": "Сохранить",
+      "saved": "Сохранено!"
+    }
   }
 }

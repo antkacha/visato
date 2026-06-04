@@ -13,6 +13,7 @@ import TripChecker from './components/TripChecker/TripChecker'
 import Timeline from './components/Timeline/Timeline'
 import FAQ from './components/FAQ'
 import MapPage from './pages/MapPage'
+import ProfilePage from './pages/ProfilePage'
 import type { TripEntry } from './types'
 import { COUNTRY_ZONE } from './constants/countries'
 import i18n from './i18n'
@@ -20,7 +21,8 @@ import i18n from './i18n'
 function App() {
   const { t } = useTranslation()
   const location = useLocation()
-  const isMapPage = location.pathname === '/map'
+  const isMapPage     = location.pathname === '/map'
+  const isProfilePage = location.pathname === '/profile'
   const { user, authLoading, signInWithGoogle, signOut } = useAuth()
   const { trips, syncing, addTrip, updateTrip, deleteTrip } = useTrips(user)
   const { theme, language, setTheme, setLanguage } = useTheme()
@@ -77,7 +79,8 @@ function App() {
         onSignOut={signOut}
       />
 
-      {isMapPage ? <MapPage trips={trips} /> : (
+      {isMapPage     ? <MapPage trips={trips} /> :
+       isProfilePage ? <ProfilePage user={user} trips={trips} /> : (
       <div style={{ opacity: langFading ? 0 : 1, transition: 'opacity 150ms ease' }}>
 
       {/* ── Hero ──────────────────────────────────────────────────────── */}
