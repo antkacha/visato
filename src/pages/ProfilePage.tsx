@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { differenceInDays, parseISO } from 'date-fns'
 import type { User } from '@supabase/supabase-js'
 import type { TripEntry } from '../types'
 import { ALL_COUNTRIES, COUNTRY_FLAGS } from '../constants/countries'
 import { loadProfile, saveProfile } from '../utils/storage'
+import { supabase } from '../lib/supabase'
 import { today } from '../utils/dateUtils'
 
 interface Props {
@@ -33,21 +35,60 @@ export default function ProfilePage({ user, trips }: Props) {
   const { t, i18n } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Form state
   const [displayName, setDisplayName] = useState('')
   const [homeCountry, setHomeCountry]  = useState('')
   const [bio, setBio]                  = useState('')
   const [localAvatar, setLocalAvatar]  = useState<string | null>(null)
-  const [saved, setSaved]              = useState(false)
 
+  // UI state
+  const [savedName, setSavedName] = useState('') // name shown in top section, only updates on save
+  const [showToast, setShowToast] = useState(false)
+
+  // ── Load profile on mount: Supabase first, localStorage fallback ─────────
   useEffect(() => {
-    const stored = loadProfile()
-    const name = (user?.user_metadata?.full_name ?? user?.email ?? '') as string
-    setDisplayName(stored.displayName || name)
-    setHomeCountry(stored.homeCountry || '')
-    setBio(stored.bio || '')
-    if (stored.photoUrl) setLocalAvatar(stored.photoUrl)
+    if (!user) return
+    const authName = (user.user_metadata?.full_name ?? user.email ?? '') as string
+
+    const init = async () => {
+      // Try Supabase profiles table first
+      if (supabase) {
+        try {
+          const { data } = await supabase
+            .from('profiles')
+            .select('display_name, home_country, bio')
+            .eq('id', user.id)
+            .single()
+          if (data) {
+            const dn = (data.display_name as string | null) || authName
+            setDisplayName(dn)
+            setSavedName(dn)
+            setHomeCountry((data.home_country as string | null) || '')
+            setBio((data.bio as string | null) || '')
+            // Photo stays in localStorage (binary not stored in Supabase here)
+            const stored = loadProfile()
+            if (stored.photoUrl) setLocalAvatar(stored.photoUrl)
+            return
+          }
+        } catch {
+          // profiles table doesn't exist yet — fall through to localStorage
+        }
+      }
+
+      // localStorage fallback
+      const stored = loadProfile()
+      const dn = stored.displayName || authName
+      setDisplayName(dn)
+      setSavedName(dn)
+      setHomeCountry(stored.homeCountry || '')
+      setBio(stored.bio || '')
+      if (stored.photoUrl) setLocalAvatar(stored.photoUrl)
+    }
+
+    init()
   }, [user])
 
+  // ── Photo upload ──────────────────────────────────────────────────────────
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -61,10 +102,36 @@ export default function ProfilePage({ user, trips }: Props) {
     e.target.value = ''
   }
 
+  // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = () => {
+    // 1. Persist immediately to localStorage
     saveProfile({ displayName, homeCountry, bio, photoUrl: localAvatar ?? undefined })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+
+    // 2. Update top-section name immediately
+    setSavedName(displayName)
+
+    // 3. Show toast
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 2500)
+
+    if (supabase && user) {
+      const uid = user.id
+      const dn  = displayName
+      const hc  = homeCountry
+
+      // 4. Update auth metadata → USER_UPDATED fires → header re-renders
+      void supabase.auth.updateUser({ data: { full_name: dn } })
+
+      // 5. Upsert to profiles table (no-op if table doesn't exist yet)
+      void (async () => {
+        try {
+          await supabase.from('profiles').upsert({
+            id: uid, display_name: dn, home_country: hc, bio,
+            updated_at: new Date().toISOString(),
+          })
+        } catch { /* profiles table absent — localStorage is the fallback */ }
+      })()
+    }
   }
 
   // ── Stats ─────────────────────────────────────────────────────────────────
@@ -96,6 +163,7 @@ export default function ProfilePage({ user, trips }: Props) {
       )
     : null
 
+  // ── Not signed in ─────────────────────────────────────────────────────────
   if (!user) {
     return (
       <div style={{
@@ -110,10 +178,11 @@ export default function ProfilePage({ user, trips }: Props) {
 
   const googleAvatar  = user.user_metadata?.avatar_url as string | undefined
   const displayAvatar = localAvatar || googleAvatar
-  const fullName      = (user.user_metadata?.full_name ?? user.email ?? '') as string
-  const email         = user.email ?? ''
+  // Top-section name: savedName (what was last saved) or auth name as fallback
+  const authName = (user.user_metadata?.full_name ?? user.email ?? '') as string
+  const topName  = savedName || authName
+  const email    = user.email ?? ''
 
-  // White input, light border — clean on white page
   const inputBase: React.CSSProperties = {
     width: '100%',
     padding: '0.5625rem 0.75rem',
@@ -159,7 +228,7 @@ export default function ProfilePage({ user, trips }: Props) {
           <div style={{ position: 'relative', flexShrink: 0 }}>
             {displayAvatar ? (
               <img
-                src={displayAvatar} alt={fullName}
+                src={displayAvatar} alt={topName}
                 style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', display: 'block' }}
               />
             ) : (
@@ -169,10 +238,9 @@ export default function ProfilePage({ user, trips }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '2rem', fontWeight: 800,
               }}>
-                {fullName.charAt(0).toUpperCase()}
+                {topName.charAt(0).toUpperCase()}
               </div>
             )}
-
             <button
               onClick={() => fileInputRef.current?.click()}
               title={t('profile.changePhoto')}
@@ -195,14 +263,14 @@ export default function ProfilePage({ user, trips }: Props) {
             />
           </div>
 
-          {/* Name / email / member since */}
+          {/* Name / email / member since — shows savedName, updates on save */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
               fontSize: '1.375rem', fontWeight: 800, color: 'var(--color-heading)',
               lineHeight: 1.2, marginBottom: '0.25rem',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
-              {fullName}
+              {topName}
             </div>
             <div style={{
               fontSize: '0.875rem', color: 'var(--color-text-muted)',
@@ -219,7 +287,7 @@ export default function ProfilePage({ user, trips }: Props) {
           </div>
         </div>
 
-        {/* ── Stats grid — all 4 same height, vertically centered ────────── */}
+        {/* ── Stats grid ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {statCards.map((s, i) => (
             <div key={i} style={{
@@ -235,18 +303,13 @@ export default function ProfilePage({ user, trips }: Props) {
             }}>
               <div style={{
                 fontSize: s.isString ? '1rem' : '1.75rem',
-                fontWeight: 800,
-                color: '#2DBF8A',
-                lineHeight: 1.2,
-                letterSpacing: s.isString ? 0 : '-0.02em',
+                fontWeight: 800, color: '#2DBF8A',
+                lineHeight: 1.2, letterSpacing: s.isString ? 0 : '-0.02em',
                 wordBreak: 'break-word',
               }}>
                 {s.value}
               </div>
-              <div style={{
-                fontSize: '0.75rem', color: 'var(--color-text-muted)',
-                fontWeight: 500, lineHeight: 1.3,
-              }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.3 }}>
                 {s.label}
               </div>
             </div>
@@ -261,7 +324,6 @@ export default function ProfilePage({ user, trips }: Props) {
           padding: '1.5rem',
           boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
         }}>
-          {/* Section title with mint tab underline */}
           <div style={{ marginBottom: '1.5rem' }}>
             <span style={{
               display: 'inline-block',
@@ -275,7 +337,6 @@ export default function ProfilePage({ user, trips }: Props) {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
 
-            {/* Display name */}
             <div>
               <label style={fieldLabel}>{t('profile.personal.displayName')}</label>
               <input
@@ -286,7 +347,6 @@ export default function ProfilePage({ user, trips }: Props) {
               />
             </div>
 
-            {/* Home country */}
             <div>
               <label style={fieldLabel}>{t('profile.personal.homeCountry')}</label>
               <select
@@ -303,7 +363,6 @@ export default function ProfilePage({ user, trips }: Props) {
               </select>
             </div>
 
-            {/* About me */}
             <div>
               <label style={fieldLabel}>{t('profile.personal.bio')}</label>
               <textarea
@@ -315,7 +374,6 @@ export default function ProfilePage({ user, trips }: Props) {
               />
             </div>
 
-            {/* Save — right-aligned, natural width */}
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 onClick={handleSave}
@@ -323,23 +381,47 @@ export default function ProfilePage({ user, trips }: Props) {
                   padding: '0.5rem 1.75rem',
                   borderRadius: '0.5rem',
                   border: 'none',
-                  background: saved ? '#1EA876' : '#2DBF8A',
+                  background: '#2DBF8A',
                   color: '#fff',
                   fontSize: '0.875rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  transition: 'background 0.2s ease',
                   fontFamily: 'Inter, system-ui, sans-serif',
                   whiteSpace: 'nowrap',
                 }}
               >
-                {saved ? t('profile.personal.saved') : t('profile.personal.save')}
+                {t('profile.personal.save')}
               </button>
             </div>
           </div>
         </div>
 
       </div>
+
+      {/* ── Success toast ─────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            style={{
+              position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)',
+              background: '#2DBF8A', color: '#fff',
+              padding: '0.625rem 1.25rem',
+              borderRadius: '0.75rem',
+              fontSize: '0.875rem', fontWeight: 600,
+              boxShadow: '0 4px 20px rgba(45,191,138,0.45)',
+              zIndex: 500, whiteSpace: 'nowrap',
+              fontFamily: 'Inter, system-ui, sans-serif',
+              pointerEvents: 'none',
+            }}
+          >
+            ✓ {t('profile.personal.saved')}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
