@@ -52,14 +52,26 @@ export function useTrips(user: User | null) {
     saveTrips(trips)
   }, [trips])
 
-  // On login: fetch cloud trips, merge with local, upload any local-only trips
+  // On sign-out: wipe trips from state and localStorage immediately
+  useEffect(() => {
+    if (!user) {
+      setTrips([])
+      saveTrips([])
+      syncedUid.current = null
+    }
+  }, [user])
+
+  // On sign-in: clear any stale local data, then load this user's trips from Supabase
   useEffect(() => {
     if (!supabase || !user || syncedUid.current === user.id) return
     syncedUid.current = user.id
-    const db = supabase  // narrowed, non-null inside this scope
+    const db = supabase
 
-    const mergeWithCloud = async () => {
+    const loadFromCloud = async () => {
       setSyncing(true)
+      // Clear before fetching so stale trips are never visible
+      setTrips([])
+      saveTrips([])
       try {
         const { data, error } = await db
           .from('trips')
@@ -69,35 +81,16 @@ export function useTrips(user: User | null) {
         if (error) throw error
 
         const cloudTrips = (data as DbTrip[]).map(fromDb)
-        const cloudIds = new Set(cloudTrips.map((t) => t.id))
-
-        // Upload local trips that aren't in the cloud yet (first-time migration)
-        const localOnly = trips.filter((t) => !cloudIds.has(t.id))
-        if (localOnly.length > 0) {
-          const { error: uploadErr } = await db
-            .from('trips')
-            .upsert(localOnly.map((t) => toDb(t, user.id)))
-          if (uploadErr) console.error('[sync] upload local-only:', uploadErr)
-        }
-
-        // Merge: cloud is authoritative; add any local-only trips on top
-        const merged = [...cloudTrips, ...localOnly]
-        setTrips(merged)
+        setTrips(cloudTrips)
       } catch (err) {
-        console.error('[sync] merge failed:', err)
+        console.error('[sync] load failed:', err)
       } finally {
         setSyncing(false)
       }
     }
 
-    mergeWithCloud()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadFromCloud()
   }, [user?.id])
-
-  // Reset sync marker on logout so next login re-syncs
-  useEffect(() => {
-    if (!user) syncedUid.current = null
-  }, [user])
 
   // ── CRUD ────────────────────────────────────────────────────────────────
 
