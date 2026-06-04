@@ -315,7 +315,7 @@ export default function MapPage({ trips }: Props) {
         </div>
         {stats && (
           <div style={{ color: '#6B7280', fontSize: '11px', fontWeight: 400, marginTop: '3px' }}>
-            {stats.trips} trip{stats.trips !== 1 ? 's' : ''} · {stats.days} day{stats.days !== 1 ? 's' : ''}
+            {t('map.tripCount', { count: stats.trips })} · {t('map.dayCount', { count: stats.days })}
           </div>
         )}
       </div>

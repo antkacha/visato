@@ -345,6 +345,14 @@
     "topCountry": "Найчастіше відвідувана",
     "noTrips": "Додайте поїздки, щоб побачити карту",
     "view3d": "3D Глобус",
-    "view2d": "Карта"
+    "view2d": "Карта",
+    "tripCount_one": "{{count}} поїздка",
+    "tripCount_few": "{{count}} поїздки",
+    "tripCount_many": "{{count}} поїздок",
+    "tripCount_other": "{{count}} поїздки",
+    "dayCount_one": "{{count}} день",
+    "dayCount_few": "{{count}} дні",
+    "dayCount_many": "{{count}} днів",
+    "dayCount_other": "{{count}} дні"
   }
 }

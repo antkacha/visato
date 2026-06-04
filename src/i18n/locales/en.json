@@ -341,6 +341,10 @@
     "topCountry": "Most visited",
     "noTrips": "Add trips to see your travel map",
     "view3d": "3D Globe",
-    "view2d": "Map"
+    "view2d": "Map",
+    "tripCount_one": "{{count}} trip",
+    "tripCount_other": "{{count}} trips",
+    "dayCount_one": "{{count}} day",
+    "dayCount_other": "{{count}} days"
   }
 }
