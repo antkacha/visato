@@ -504,7 +504,7 @@ export default function MapPage({ trips }: Props) {
                       projectionConfig={{ scale: flatScale }}
                       style={{ display: 'block', width: '100%', height: '100%', background: 'transparent' }}
                     >
-                      <Geographies geography={topoData}>
+                      <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json">
                         {({ geographies }) =>
                           geographies.map(geo => {
                             const slug = ISO_TO_SLUG[Number(geo.id)]
@@ -515,7 +515,7 @@ export default function MapPage({ trips }: Props) {
                                 geography={geo}
                                 fill={isVisited ? '#2DBF8A' : '#E0E0E0'}
                                 stroke="#FFFFFF"
-                                strokeWidth={0.5}
+                                strokeWidth={0.5 / panZoom.scale}
                                 onMouseEnter={e => {
                                   if (slug) setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
                                 }}
