@@ -1,3 +1,5 @@
+import { useState, useRef, useEffect } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import type { User } from '@supabase/supabase-js'
 
@@ -25,13 +27,9 @@ function SyncDot() {
     <span
       title="Syncing…"
       style={{
-        display: 'inline-block',
-        width: '6px',
-        height: '6px',
-        borderRadius: '50%',
-        background: 'var(--color-accent)',
-        animation: 'pulse 1.4s ease-in-out infinite',
-        flexShrink: 0,
+        display: 'inline-block', width: '6px', height: '6px',
+        borderRadius: '50%', background: 'var(--color-accent)',
+        animation: 'pulse 1.4s ease-in-out infinite', flexShrink: 0,
       }}
     />
   )
@@ -39,18 +37,27 @@ function SyncDot() {
 
 export default function AuthButton({ user, authLoading, syncing, onSignIn, onSignOut }: Props) {
   const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
 
   if (authLoading) {
     return (
-      <div
-        style={{
-          width: '7rem',
-          height: '2rem',
-          borderRadius: '0.5rem',
-          background: 'var(--color-border)',
-          opacity: 0.5,
-        }}
-      />
+      <div style={{
+        width: '7rem', height: '2rem', borderRadius: '0.5rem',
+        background: 'var(--color-border)', opacity: 0.5,
+      }} />
     )
   }
 
@@ -60,18 +67,11 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
         onClick={onSignIn}
         title={t('auth.signInTitle')}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          padding: '0.375rem 0.75rem',
-          borderRadius: '0.5rem',
-          background: 'var(--color-accent)',
-          border: 'none',
-          color: '#fff',
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          cursor: 'pointer',
-          whiteSpace: 'nowrap',
+          display: 'flex', alignItems: 'center', gap: '0.4rem',
+          padding: '0.375rem 0.75rem', borderRadius: '0.5rem',
+          background: 'var(--color-accent)', border: 'none',
+          color: '#fff', fontSize: '0.75rem', fontWeight: 600,
+          cursor: 'pointer', whiteSpace: 'nowrap',
         }}
       >
         <GoogleIcon />
@@ -82,75 +82,97 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
 
   const avatar = user.user_metadata?.avatar_url as string | undefined
   const name = (user.user_metadata?.full_name ?? user.email ?? '') as string
-  const displayName = name.split(' ')[0] // first name only
+  const displayName = name.split(' ')[0]
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-      {/* Sync indicator */}
+    <div ref={containerRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
       {syncing && <SyncDot />}
 
-      {/* Avatar */}
-      {avatar ? (
-        <img
-          src={avatar}
-          alt={name}
-          title={name}
-          style={{
-            width: '1.75rem',
-            height: '1.75rem',
-            borderRadius: '50%',
-            border: '1.5px solid var(--color-border)',
-            flexShrink: 0,
-          }}
-        />
-      ) : (
-        <span
-          title={name}
-          style={{
-            width: '1.75rem',
-            height: '1.75rem',
-            borderRadius: '50%',
-            background: 'var(--color-accent)',
-            color: '#fff',
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          {name.charAt(0).toUpperCase()}
-        </span>
-      )}
-
-      {/* Name — hidden on very small screens */}
-      <span
-        className="hidden sm:inline"
-        style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text)', maxWidth: '6rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-      >
-        {displayName}
-      </span>
-
-      {/* Sign out */}
+      {/* Trigger: avatar + name */}
       <button
-        onClick={onSignOut}
-        title={t('auth.signOut')}
+        onClick={() => setOpen((o) => !o)}
         style={{
-          padding: '0.25rem 0.5rem',
-          borderRadius: '0.375rem',
-          background: 'transparent',
-          border: '1px solid var(--color-border)',
-          color: 'var(--color-text-muted)',
-          fontSize: '0.7rem',
-          fontWeight: 600,
-          cursor: 'pointer',
-          whiteSpace: 'nowrap',
+          display: 'flex', alignItems: 'center', gap: '0.4rem',
+          padding: '0.25rem 0.5rem 0.25rem 0.25rem',
+          borderRadius: '0.5rem', border: '1px solid var(--color-border)',
+          background: 'transparent', cursor: 'pointer',
         }}
       >
-        <span className="hidden sm:inline">{t('auth.signOut')}</span>
-        <span className="sm:hidden" aria-hidden="true">✕</span>
+        {avatar ? (
+          <img
+            src={avatar}
+            alt={name}
+            style={{
+              width: '1.625rem', height: '1.625rem',
+              borderRadius: '50%', border: '1.5px solid var(--color-border)',
+              flexShrink: 0,
+            }}
+          />
+        ) : (
+          <span style={{
+            width: '1.625rem', height: '1.625rem', borderRadius: '50%',
+            background: 'var(--color-accent)', color: '#fff',
+            fontSize: '0.7rem', fontWeight: 700, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {name.charAt(0).toUpperCase()}
+          </span>
+        )}
+
+        <span
+          className="hidden sm:inline"
+          style={{
+            fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text)',
+            maxWidth: '6rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}
+        >
+          {displayName}
+        </span>
+
+        {/* Chevron */}
+        <svg
+          width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0, color: 'var(--color-text-muted)' }}
+        >
+          <path
+            d="M2 3.5L5 6.5L8 3.5"
+            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"
+          />
+        </svg>
       </button>
+
+      {/* Dropdown */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.96 }}
+            transition={{ duration: 0.14, ease: 'easeOut' }}
+            style={{
+              position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '0.75rem',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+              minWidth: '140px', overflow: 'hidden', zIndex: 200,
+            }}
+          >
+            <button
+              onClick={() => { setOpen(false); onSignOut() }}
+              style={{
+                width: '100%', padding: '0.625rem 1rem',
+                background: 'transparent', border: 'none',
+                textAlign: 'left', fontSize: '0.8125rem', fontWeight: 500,
+                color: 'var(--color-danger)', cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.06)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              {t('auth.signOut')}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

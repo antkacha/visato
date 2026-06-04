@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import type { User } from '@supabase/supabase-js'
@@ -37,7 +36,6 @@ export default function Header({
 }: Props) {
   const { t } = useTranslation()
   const location = useLocation()
-  const [menuOpen, setMenuOpen] = useState(false)
 
   const cycleTheme = () => {
     const idx = THEME_CYCLE.indexOf(theme)
@@ -58,7 +56,6 @@ export default function Header({
       borderBottom: '1px solid var(--color-border)',
       position: 'sticky', top: 0, zIndex: 50,
     }}>
-      {/* ── Main bar ────────────────────────────────────────────────── */}
       <div style={{
         maxWidth: '80rem', margin: '0 auto', padding: '0 1.25rem',
         height: '56px',
@@ -79,8 +76,8 @@ export default function Header({
           </span>
         </Link>
 
-        {/* CENTER: Nav links — desktop only */}
-        <nav className="hidden md:flex" style={{ alignItems: 'center', gap: '0.125rem' }}>
+        {/* CENTER: Nav links */}
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
           {navLinks.map(({ label, to }) => {
             const active = isActive(to)
             return (
@@ -89,7 +86,7 @@ export default function Header({
                 to={to}
                 style={{
                   textDecoration: 'none',
-                  padding: '0.375rem 0.875rem',
+                  padding: '0.375rem 0.75rem',
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   fontWeight: active ? 700 : 500,
@@ -133,90 +130,12 @@ export default function Header({
             ))}
           </div>
 
-          {/* Theme toggle — always visible */}
+          {/* Theme toggle */}
           <button onClick={cycleTheme} style={iconBtn} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
             {THEME_ICONS[theme]}
           </button>
 
-          {/* Auth — desktop only */}
-          <div className="hidden md:flex" style={{ alignItems: 'center' }}>
-            <AuthButton
-              user={user}
-              authLoading={authLoading}
-              syncing={syncing}
-              onSignIn={onSignIn}
-              onSignOut={onSignOut}
-            />
-          </div>
-
-          {/* Hamburger — mobile only */}
-          <button
-            className="flex md:hidden"
-            onClick={() => setMenuOpen((o) => !o)}
-            style={iconBtn}
-            aria-label="Menu"
-          >
-            {menuOpen ? '✕' : '☰'}
-          </button>
-        </div>
-      </div>
-
-      {/* ── Mobile drawer ───────────────────────────────────────────── */}
-      {menuOpen && (
-        <div style={{
-          background: 'var(--color-section)',
-          borderTop: '1px solid var(--color-border)',
-          padding: '0.75rem 1.25rem 1.25rem',
-        }}>
-          {/* Nav links */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem', marginBottom: '0.75rem' }}>
-            {navLinks.map(({ label, to }) => {
-              const active = isActive(to)
-              return (
-                <Link
-                  key={to}
-                  to={to}
-                  onClick={() => setMenuOpen(false)}
-                  style={{
-                    textDecoration: 'none',
-                    padding: '0.625rem 0.75rem',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.9375rem',
-                    fontWeight: active ? 700 : 500,
-                    color: active ? '#2DBF8A' : 'var(--color-text)',
-                    background: active ? 'rgba(45,191,138,0.08)' : 'transparent',
-                  }}
-                >
-                  {label}
-                </Link>
-              )
-            })}
-          </div>
-
-          {/* Divider */}
-          <div style={{ height: 1, background: 'var(--color-border)', margin: '0.75rem 0' }} />
-
-          {/* Language switcher */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-            {(['en', 'uk', 'ru'] as Language[]).map((lang) => (
-              <button
-                key={lang}
-                onClick={() => { onLanguageChange(lang); setMenuOpen(false) }}
-                style={{
-                  flex: 1, padding: '0.5rem',
-                  background: language === lang ? 'var(--color-accent)' : 'transparent',
-                  color: language === lang ? '#fff' : 'var(--color-text-muted)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer',
-                }}
-              >
-                {lang.toUpperCase()}
-              </button>
-            ))}
-          </div>
-
-          {/* Auth */}
+          {/* Auth (always visible — sign-out lives in avatar dropdown) */}
           <AuthButton
             user={user}
             authLoading={authLoading}
@@ -225,7 +144,7 @@ export default function Header({
             onSignOut={onSignOut}
           />
         </div>
-      )}
+      </div>
     </header>
   )
 }
