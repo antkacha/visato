@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import Globe from 'react-globe.gl'
 import type { GlobeMethods } from 'react-globe.gl'
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps'
+import { AnimatePresence, motion } from 'framer-motion'
 import { feature } from 'topojson-client'
 import type { Topology, GeometryCollection } from 'topojson-specification'
 import { useTranslation } from 'react-i18next'
@@ -25,29 +26,38 @@ interface GeoFeature {
 
 type ViewMode = 'globe' | 'flat'
 
-// Ocean/water colors per theme
 const THEME = {
   dark: {
     bg: '#0c1424',
-    ocean: '#1a2d4a',
+    ocean: '#B8CDE0',
     visited: '#2DBF8A',
-    unvisited: '#1e2d3d',
-    border: 'rgba(255,255,255,0.06)',
-    atmosphere: '#1a3a6e',
+    unvisited: '#E8EFF5',
+    border: '#FFFFFF',
     statBg: 'rgba(13,20,36,0.85)',
   },
   light: {
     bg: '#F0FAF6',
-    ocean: '#3B82F6',
+    ocean: '#B8CDE0',
     visited: '#2DBF8A',
-    unvisited: '#E8E8E8',
-    border: '#6B9E7A',
-    atmosphere: '#2DBF8A',
+    unvisited: '#E8EFF5',
+    border: '#FFFFFF',
     statBg: 'rgba(255,255,255,0.92)',
   },
 }
 
 const TOGGLE_H = 50
+
+// Framer Motion variants for the view panels
+const viewVariants = {
+  globeInitial:  { opacity: 0, scale: 0.90 },
+  globeAnimate:  { opacity: 1, scale: 1 },
+  globeExit:     { opacity: 0, scale: 0.90 },
+  flatInitial:   { opacity: 0, scale: 0.96 },
+  flatAnimate:   { opacity: 1, scale: 1 },
+  flatExit:      { opacity: 0, scale: 0.96 },
+}
+
+const panelTransition = { duration: 0.4, ease: 'easeInOut' as const }
 
 function tripDays(trip: TripEntry): number {
   const exit = trip.exitDate === 'ongoing' ? today() : trip.exitDate
@@ -68,9 +78,8 @@ export default function MapPage({ trips }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>('globe')
   const [flatTooltip, setFlatTooltip] = useState<{ x: number; y: number; slug: string } | null>(null)
 
-  // Solid-color data URL used as globeImageUrl to override the default Earth texture.
-  // Passing a truthy data URL is the only reliable way to prevent three-globe from
-  // falling back to its built-in dark satellite image.
+  // Solid-color canvas texture for the ocean — the only reliable way to override the
+  // built-in satellite texture in three-globe without leaving black squares.
   const [oceanDataUrl, setOceanDataUrl] = useState('')
   useEffect(() => {
     const canvas = document.createElement('canvas')
@@ -82,7 +91,7 @@ export default function MapPage({ trips }: Props) {
     setOceanDataUrl(canvas.toDataURL('image/png'))
   }, [colors.ocean])
 
-  // Load world atlas — store both GeoJSON features (for Globe) and raw TopoJSON (for flat map)
+  // Load world atlas — GeoJSON features for Globe, raw TopoJSON for react-simple-maps
   useEffect(() => {
     import('world-atlas/countries-110m.json').then((mod) => {
       const topo = mod.default as unknown as Topology<{ countries: GeometryCollection }>
@@ -105,7 +114,6 @@ export default function MapPage({ trips }: Props) {
   }, [])
 
   const applyGlobeMaterial = useCallback((g: any) => {
-    // Try globeMaterial() API first
     try {
       const mat = g.globeMaterial()
       mat.map = null
@@ -115,26 +123,11 @@ export default function MapPage({ trips }: Props) {
       mat.needsUpdate = true
     } catch (_) { /* ignore */ }
 
-    // Also find the sphere mesh directly in the scene tree as a fallback
-    const applyToMesh = (obj: any) => {
-      if (obj.isMesh && obj.geometry?.parameters?.phiLength !== undefined) return // skip polygon meshes
-      if (obj.isMesh && obj.material) {
-        const mat = obj.material
-        mat.map = null
-        mat.color.set(colors.ocean)
-        mat.emissive.set(colors.ocean)
-        mat.emissiveIntensity = 1
-        mat.needsUpdate = true
-      }
-      obj.children?.forEach(applyToMesh)
-    }
     try {
       const scene = g.scene()
-      // Remove DirectionalLights while we're here
       scene.children
         .filter((c: any) => c.type === 'DirectionalLight')
         .forEach((c: any) => scene.remove(c))
-      // Apply to the first Mesh child (globe sphere)
       const sphereMesh = scene.children.find((c: any) => c.isMesh)
       if (sphereMesh) {
         const mat = sphereMesh.material
@@ -147,18 +140,15 @@ export default function MapPage({ trips }: Props) {
     } catch (_) { /* ignore */ }
   }, [colors.ocean])
 
-  // Set ocean color and auto-rotation on globe ready
   const handleGlobeReady = useCallback(() => {
     const globe = globeRef.current
     if (!globe) return
     const g = globe as any
 
     applyGlobeMaterial(g)
-    // Re-apply after a tick to catch any async texture loads that might overwrite our settings
     setTimeout(() => applyGlobeMaterial(g), 100)
     setTimeout(() => applyGlobeMaterial(g), 500)
 
-    // Clear scene/renderer background
     try {
       g.scene().background = null
       g.renderer().setClearColor(0x000000, 0)
@@ -174,19 +164,16 @@ export default function MapPage({ trips }: Props) {
     })
   }, [applyGlobeMaterial])
 
-  // Re-apply when theme changes
   useEffect(() => {
     const globe = globeRef.current
     if (globe) applyGlobeMaterial(globe as any)
   }, [applyGlobeMaterial])
 
-  // Visited countries set
   const visitedSlugs = useMemo(
     () => new Set(trips.map((t) => t.country)),
     [trips]
   )
 
-  // Per-country trip stats for tooltip
   const countryStats = useMemo(() => {
     const stats: Record<string, { trips: number; days: number }> = {}
     for (const t of trips) {
@@ -197,7 +184,6 @@ export default function MapPage({ trips }: Props) {
     return stats
   }, [trips])
 
-  // Debug: log trip slugs vs resolved GeoJSON slugs so matching issues are visible in console
   useEffect(() => {
     if (!countries.length || !trips.length) return
     console.log('[Map] Trip country slugs:', [...visitedSlugs])
@@ -210,7 +196,6 @@ export default function MapPage({ trips }: Props) {
   const getCapColor = useCallback(
     (f: object) => {
       const feat = f as GeoFeature
-      // feat.id is a string in world-atlas JSON — coerce to Number for the lookup
       const slug = ISO_TO_SLUG[Number(feat.id)]
       return visitedSlugs.has(slug) ? colors.visited : colors.unvisited
     },
@@ -226,18 +211,15 @@ export default function MapPage({ trips }: Props) {
       const flag = COUNTRY_FLAGS[slug] ?? ''
       const stats = countryStats[slug]
       const isVisited = !!stats
-
       const cardBg = theme === 'dark' ? 'rgba(13,22,38,0.96)' : '#ffffff'
       const textColor = theme === 'dark' ? '#ffffff' : '#1a1a1a'
       const subColor = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'
       const borderColor = isVisited ? '#2DBF8A' : (theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
-
       return `<div style="background:${cardBg};color:${textColor};padding:8px 12px;border-radius:8px;font-family:Inter,sans-serif;font-size:13px;font-weight:600;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid ${borderColor};">${flag} ${name}${isVisited ? `<div style="margin-top:4px;font-size:11px;font-weight:400;color:${subColor}">${stats.trips} trip${stats.trips !== 1 ? 's' : ''} · ${stats.days} day${stats.days !== 1 ? 's' : ''}</div>` : ''}</div>`
     },
     [t, countryStats, theme]
   )
 
-  // Flat map tooltip render helper
   const renderFlatTooltip = () => {
     if (!flatTooltip) return null
     const { x, y, slug } = flatTooltip
@@ -251,20 +233,11 @@ export default function MapPage({ trips }: Props) {
     const borderColor = isVisited ? '#2DBF8A' : (theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
     return (
       <div style={{
-        position: 'fixed',
-        left: x + 14,
-        top: y - 40,
-        zIndex: 200,
-        pointerEvents: 'none',
-        background: cardBg,
-        color: textColor,
-        padding: '8px 12px',
-        borderRadius: '8px',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: '13px',
-        fontWeight: 600,
-        whiteSpace: 'nowrap',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+        position: 'fixed', left: x + 14, top: y - 40, zIndex: 200,
+        pointerEvents: 'none', background: cardBg, color: textColor,
+        padding: '8px 12px', borderRadius: '8px',
+        fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600,
+        whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
         border: `1px solid ${borderColor}`,
       }}>
         {flag} {name}
@@ -297,28 +270,18 @@ export default function MapPage({ trips }: Props) {
     return Object.entries(daysByCountry).sort(([, a], [, b]) => b - a)[0]
   }, [trips])
 
-  const stats = [
-    {
-      label: t('map.totalCountries'),
-      value: uniqueCountries.length,
-      suffix: '',
-    },
-    {
-      label: t('map.totalDays'),
-      value: totalDays,
-      suffix: '',
-    },
+  const statsItems = [
+    { label: t('map.totalCountries'), value: uniqueCountries.length },
+    { label: t('map.totalDays'), value: totalDays },
     {
       label: t('map.topCountry'),
       value: topCountry
         ? `${COUNTRY_FLAGS[topCountry[0]] ?? ''} ${t(`countries.${topCountry[0]}`, { defaultValue: topCountry[0] })}`
         : '—',
-      suffix: '',
     },
   ]
 
   const globeH = Math.max(dims.h - 120 - TOGGLE_H, 200)
-
   const toggleBg = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
   const inactiveColor = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)'
 
@@ -353,12 +316,15 @@ export default function MapPage({ trips }: Props) {
           {(['globe', 'flat'] as ViewMode[]).map((mode) => {
             const isActive = viewMode === mode
             return (
-              <button
+              <motion.button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                style={{
-                  background: isActive ? '#2DBF8A' : 'transparent',
+                animate={{
+                  backgroundColor: isActive ? '#2DBF8A' : 'rgba(0,0,0,0)',
                   color: isActive ? '#ffffff' : inactiveColor,
+                }}
+                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                style={{
                   border: 'none',
                   borderRadius: '999px',
                   padding: '6px 18px',
@@ -367,147 +333,165 @@ export default function MapPage({ trips }: Props) {
                   cursor: 'pointer',
                   fontFamily: 'Inter, system-ui, sans-serif',
                   whiteSpace: 'nowrap',
-                  transition: 'background 0.18s, color 0.18s',
                   lineHeight: 1.4,
                 }}
               >
                 {mode === 'globe' ? `🌍 ${t('map.view3d')}` : `🗺️ ${t('map.view2d')}`}
-              </button>
+              </motion.button>
             )
           })}
         </div>
       </div>
 
-      {/* Globe view */}
-      {viewMode === 'globe' && (
-        <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-          {countries.length > 0 && (
-            <Globe
-              ref={globeRef}
-              width={dims.w}
-              height={globeH}
-              backgroundColor="rgba(0,0,0,0)"
-              globeImageUrl={oceanDataUrl || (null as unknown as string)}
-              showAtmosphere={false}
-              polygonsData={countries}
-              polygonCapColor={getCapColor}
-              polygonSideColor={() => 'transparent'}
-              polygonStrokeColor={() => colors.border}
-              polygonLabel={getLabel}
-              onPolygonHover={(f) => setHovered(f as GeoFeature | null)}
-              onGlobeReady={handleGlobeReady}
-            />
-          )}
-          {countries.length === 0 && (
-            <div style={{
-              position: 'absolute', inset: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: theme === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
-              fontSize: '0.875rem',
-            }}>
-              Loading globe…
-            </div>
-          )}
-          {trips.length === 0 && countries.length > 0 && (
-            <div style={{
-              position: 'absolute', bottom: '1rem', left: '50%',
-              transform: 'translateX(-50%)',
-              background: colors.statBg,
-              padding: '0.5rem 1rem',
-              borderRadius: '2rem',
-              fontSize: '0.8125rem',
-              color: theme === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(8px)',
-              border: `1px solid ${colors.border}`,
-              whiteSpace: 'nowrap',
-            }}>
-              {t('map.noTrips')}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Flat 2D map view */}
-      {viewMode === 'flat' && (
-        <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-          {topoData ? (
-            <ComposableMap
-              projection="geoNaturalEarth1"
-              projectionConfig={{ scale: 145 }}
-              style={{ width: '100%', height: '100%' }}
+      {/* Map area — AnimatePresence handles crossfade between views */}
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+        <AnimatePresence>
+          {viewMode === 'globe' && (
+            <motion.div
+              key="globe"
+              initial={viewVariants.globeInitial}
+              animate={viewVariants.globeAnimate}
+              exit={viewVariants.globeExit}
+              transition={panelTransition}
+              style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}
             >
-              <Geographies geography={topoData}>
-                {({ geographies }) =>
-                  geographies.map((geo) => {
-                    const slug = ISO_TO_SLUG[Number(geo.id)]
-                    const isVisited = !!slug && visitedSlugs.has(slug)
-                    return (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        fill={isVisited ? '#2DBF8A' : colors.unvisited}
-                        stroke="#FFFFFF"
-                        strokeWidth={0.5}
-                        onMouseEnter={(e) => {
-                          if (!slug) return
-                          setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
-                        }}
-                        onMouseMove={(e) => {
-                          if (!slug) return
-                          setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
-                        }}
-                        onMouseLeave={() => setFlatTooltip(null)}
-                        style={{
-                          default: { outline: 'none' },
-                          hover: {
-                            fill: isVisited ? '#25A876' : (theme === 'dark' ? '#2a3f54' : '#D4D4D4'),
-                            outline: 'none',
-                            cursor: 'pointer',
-                          },
-                          pressed: { outline: 'none' },
-                        }}
-                      />
-                    )
-                  })
-                }
-              </Geographies>
-            </ComposableMap>
-          ) : (
-            <div style={{
-              position: 'absolute', inset: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: theme === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
-              fontSize: '0.875rem',
-            }}>
-              Loading map…
-            </div>
+              {countries.length > 0 ? (
+                // CSS drop-shadow on the wrapper gives the globe a soft floating shadow
+                <div style={{ filter: 'drop-shadow(0px 20px 40px rgba(0,0,0,0.15))' }}>
+                  <Globe
+                    ref={globeRef}
+                    width={dims.w}
+                    height={globeH}
+                    backgroundColor="rgba(0,0,0,0)"
+                    globeImageUrl={oceanDataUrl || (null as unknown as string)}
+                    showAtmosphere={false}
+                    polygonsData={countries}
+                    polygonCapColor={getCapColor}
+                    polygonSideColor={() => 'transparent'}
+                    polygonStrokeColor={() => '#FFFFFF'}
+                    polygonLabel={getLabel}
+                    onPolygonHover={(f) => setHovered(f as GeoFeature | null)}
+                    onGlobeReady={handleGlobeReady}
+                  />
+                </div>
+              ) : (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: theme === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+                  fontSize: '0.875rem',
+                }}>
+                  Loading globe…
+                </div>
+              )}
+              {trips.length === 0 && countries.length > 0 && (
+                <div style={{
+                  position: 'absolute', bottom: '1rem', left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: colors.statBg,
+                  padding: '0.5rem 1rem',
+                  borderRadius: '2rem',
+                  fontSize: '0.8125rem',
+                  color: theme === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)',
+                  backdropFilter: 'blur(8px)',
+                  border: `1px solid rgba(255,255,255,0.12)`,
+                  whiteSpace: 'nowrap',
+                }}>
+                  {t('map.noTrips')}
+                </div>
+              )}
+            </motion.div>
           )}
-          {trips.length === 0 && !!topoData && (
-            <div style={{
-              position: 'absolute', bottom: '1rem', left: '50%',
-              transform: 'translateX(-50%)',
-              background: colors.statBg,
-              padding: '0.5rem 1rem',
-              borderRadius: '2rem',
-              fontSize: '0.8125rem',
-              color: theme === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(8px)',
-              border: `1px solid ${colors.border}`,
-              whiteSpace: 'nowrap',
-            }}>
-              {t('map.noTrips')}
-            </div>
+
+          {viewMode === 'flat' && (
+            <motion.div
+              key="flat"
+              initial={viewVariants.flatInitial}
+              animate={viewVariants.flatAnimate}
+              exit={viewVariants.flatExit}
+              transition={panelTransition}
+              style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}
+            >
+              {topoData ? (
+                <ComposableMap
+                  projection="geoNaturalEarth1"
+                  projectionConfig={{ scale: 400, center: [15, 50] }}
+                  style={{ width: '100%', height: '100%' }}
+                >
+                  <Geographies geography={topoData}>
+                    {({ geographies }) =>
+                      geographies.map((geo) => {
+                        const slug = ISO_TO_SLUG[Number(geo.id)]
+                        const isVisited = !!slug && visitedSlugs.has(slug)
+                        return (
+                          <Geography
+                            key={geo.rsmKey}
+                            geography={geo}
+                            fill={isVisited ? '#2DBF8A' : colors.unvisited}
+                            stroke="#FFFFFF"
+                            strokeWidth={0.3}
+                            onMouseEnter={(e) => {
+                              if (!slug) return
+                              setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
+                            }}
+                            onMouseMove={(e) => {
+                              if (!slug) return
+                              setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
+                            }}
+                            onMouseLeave={() => setFlatTooltip(null)}
+                            style={{
+                              default: { outline: 'none' },
+                              hover: {
+                                fill: isVisited ? '#25A876' : (theme === 'dark' ? '#B0C0CE' : '#D4D4D4'),
+                                outline: 'none',
+                                cursor: 'pointer',
+                              },
+                              pressed: { outline: 'none' },
+                            }}
+                          />
+                        )
+                      })
+                    }
+                  </Geographies>
+                </ComposableMap>
+              ) : (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: theme === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+                  fontSize: '0.875rem',
+                }}>
+                  Loading map…
+                </div>
+              )}
+              {trips.length === 0 && !!topoData && (
+                <div style={{
+                  position: 'absolute', bottom: '1rem', left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: colors.statBg,
+                  padding: '0.5rem 1rem',
+                  borderRadius: '2rem',
+                  fontSize: '0.8125rem',
+                  color: theme === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)',
+                  backdropFilter: 'blur(8px)',
+                  border: `1px solid rgba(255,255,255,0.12)`,
+                  whiteSpace: 'nowrap',
+                }}>
+                  {t('map.noTrips')}
+                </div>
+              )}
+              {renderFlatTooltip()}
+            </motion.div>
           )}
-          {renderFlatTooltip()}
-        </div>
-      )}
+        </AnimatePresence>
+      </div>
 
       {/* Stats bar */}
       <div style={{
         height: '120px',
         background: colors.statBg,
         backdropFilter: 'blur(12px)',
-        borderTop: `1px solid ${colors.border}`,
+        borderTop: `1px solid rgba(255,255,255,0.08)`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -515,7 +499,7 @@ export default function MapPage({ trips }: Props) {
         padding: '0 1rem',
         flexShrink: 0,
       }}>
-        {stats.map((s, i) => (
+        {statsItems.map((s, i) => (
           <div
             key={i}
             style={{
@@ -525,7 +509,9 @@ export default function MapPage({ trips }: Props) {
               alignItems: 'center',
               justifyContent: 'center',
               padding: '0.75rem 0.5rem',
-              borderRight: i < stats.length - 1 ? `1px solid ${colors.border}` : 'none',
+              borderRight: i < statsItems.length - 1
+                ? `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`
+                : 'none',
             }}
           >
             <span style={{
