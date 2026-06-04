@@ -189,9 +189,9 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
           {/* Stat tiles */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 80 }}>
             {[
-              { n: uniqueCountries, label: 'Countries' },
-              { n: trips.length,    label: 'Trips' },
-              { n: totalDays,       label: 'Days abroad' },
+              { n: uniqueCountries, label: t('share.stats.countries') },
+              { n: trips.length,    label: t('share.stats.trips') },
+              { n: totalDays,       label: t('share.stats.daysAbroad') },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
                 <div style={{
