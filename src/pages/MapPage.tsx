@@ -69,7 +69,9 @@ export default function MapPage({ trips }: Props) {
   } | null>(null)
   const [panZoom, setPanZoom]   = useState({ x: 0, y: 0, scale: 1 })
   const [isPanning, setIsPanning] = useState(false)
-  const [flatTooltip, setFlatTooltip] = useState<{ x: number; y: number; slug: string } | null>(null)
+  const [flatTooltip, setFlatTooltip]   = useState<{ x: number; y: number; slug: string } | null>(null)
+  const [globeTooltip, setGlobeTooltip] = useState<{ x: number; y: number; slug: string } | null>(null)
+  const globeMouseRef = useRef({ x: 0, y: 0 })
 
   // ── Ocean texture data URL (prevents three-globe default satellite image) ──
   useEffect(() => {
@@ -283,26 +285,14 @@ export default function MapPage({ trips }: Props) {
     const isVisited = visitedSlugs.has(slug)
     // String comparison handles world-atlas string IDs vs numeric hoveredId
     const isHovered = hoveredId !== null && String(feat.id) === String(hoveredId)
-    if (isHovered) return isVisited ? '#38D49A' : '#D8E4E0'
+    if (isHovered) return isVisited ? '#1EA876' : '#C8D0D6'
     return isVisited ? colors.visited : colors.unvisited
   }, [visitedSlugs, colors, hoveredId])
 
-  const getLabel = useCallback((f: object) => {
-    const feat = f as GeoFeature
-    const slug = ISO_TO_SLUG[Number(feat.id)]
-    if (!slug) return ''
-    const name  = t(`countries.${slug}`, { defaultValue: slug })
-    const flag  = COUNTRY_FLAGS[slug] ?? ''
-    const stats = countryStats[slug]
-    const sub   = stats
-      ? `<div style="color:#6B7280;font-size:11px;font-weight:400;margin-top:3px;">${stats.trips} trip${stats.trips !== 1 ? 's' : ''} · ${stats.days} day${stats.days !== 1 ? 's' : ''}</div>`
-      : ''
-    return `<div style="background:#ffffff;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);border-left:4px solid #2DBF8A;padding:8px 12px;font-family:Inter,sans-serif;pointer-events:none;white-space:nowrap;"><div style="color:#1a1a1a;font-size:13px;font-weight:700;">${flag} ${name}</div>${sub}</div>`
-  }, [t, countryStats])
-
-  const renderFlatTooltip = () => {
-    if (!flatTooltip) return null
-    const { x, y, slug } = flatTooltip
+  // Shared tooltip renderer — used by both globe and 2D map
+  const renderTooltip = (tip: { x: number; y: number; slug: string } | null) => {
+    if (!tip) return null
+    const { x, y, slug } = tip
     const name  = t(`countries.${slug}`, { defaultValue: slug })
     const flag  = COUNTRY_FLAGS[slug] ?? ''
     const stats = countryStats[slug]
@@ -413,7 +403,15 @@ export default function MapPage({ trips }: Props) {
 
         {/* 3D Globe — always mounted to avoid WebGL teardown */}
         {countries.length > 0 ? (
-          <div style={{ filter: GLOBE_SHADOW }}>
+          <div
+            style={{ filter: GLOBE_SHADOW }}
+            onMouseMove={e => {
+              globeMouseRef.current = { x: e.clientX, y: e.clientY }
+              // Keep tooltip position in sync while moving over the same country
+              setGlobeTooltip(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)
+            }}
+            onMouseLeave={() => { setGlobeTooltip(null); setHoveredId(null) }}
+          >
             <Globe
               ref={globeRef}
               width={dims.w}
@@ -425,8 +423,17 @@ export default function MapPage({ trips }: Props) {
               polygonCapColor={getCapColor}
               polygonSideColor={() => 'transparent'}
               polygonStrokeColor={() => 'rgba(255,255,255,0.8)'}
-              polygonLabel={getLabel}
-              onPolygonHover={f => setHoveredId(f ? (f as GeoFeature).id : null)}
+              polygonLabel={() => ''}
+              onPolygonHover={f => {
+                const feat = f as GeoFeature | null
+                setHoveredId(feat ? feat.id : null)
+                if (feat) {
+                  const slug = ISO_TO_SLUG[Number(feat.id)]
+                  setGlobeTooltip(slug ? { ...globeMouseRef.current, slug } : null)
+                } else {
+                  setGlobeTooltip(null)
+                }
+              }}
               onGlobeReady={handleGlobeReady}
             />
           </div>
@@ -440,6 +447,9 @@ export default function MapPage({ trips }: Props) {
             Loading globe…
           </div>
         )}
+
+        {/* Globe tooltip — React div, not the built-in globe label */}
+        {viewMode === 'globe' && renderTooltip(globeTooltip)}
 
         {/* No-trips hint for globe mode */}
         {trips.length === 0 && countries.length > 0 && viewMode === 'globe' && (
@@ -556,7 +566,7 @@ export default function MapPage({ trips }: Props) {
                 </div>
               )}
 
-              {renderFlatTooltip()}
+              {renderTooltip(flatTooltip)}
             </motion.div>
           )}
         </AnimatePresence>
