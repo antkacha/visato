@@ -22,25 +22,71 @@ function GoogleIcon() {
   )
 }
 
-function SyncDot() {
+function PersonIcon() {
   return (
-    <span
-      title="Syncing…"
-      style={{
-        display: 'inline-block', width: '6px', height: '6px',
-        borderRadius: '50%', background: 'var(--color-accent)',
-        animation: 'pulse 1.4s ease-in-out infinite', flexShrink: 0,
-      }}
-    />
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
   )
 }
+
+function LogoutIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  )
+}
+
+function SyncDot() {
+  return (
+    <span style={{
+      display: 'inline-block', width: '6px', height: '6px',
+      borderRadius: '50%', background: 'var(--color-accent)',
+      animation: 'pulse 1.4s ease-in-out infinite', flexShrink: 0,
+    }} />
+  )
+}
+
+const divider = (
+  <div style={{ height: 1, background: 'var(--color-border)', margin: '0.25rem 0' }} />
+)
+
+const menuItem = (
+  icon: React.ReactNode,
+  label: string,
+  onClick: () => void,
+  danger = false,
+): React.ReactNode => (
+  <button
+    onClick={onClick}
+    style={{
+      width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem',
+      padding: '0.5rem 0.875rem', background: 'transparent', border: 'none',
+      textAlign: 'left', fontSize: '0.8125rem', fontWeight: 500,
+      color: danger ? 'var(--color-danger)' : 'var(--color-text)',
+      cursor: 'pointer',
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.background = danger
+        ? 'rgba(239,68,68,0.06)'
+        : 'var(--color-bg)'
+    }}
+    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+  >
+    {icon}
+    {label}
+  </button>
+)
 
 export default function AuthButton({ user, authLoading, syncing, onSignIn, onSignOut }: Props) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
@@ -81,20 +127,21 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
   }
 
   const avatar = user.user_metadata?.avatar_url as string | undefined
-  const name = (user.user_metadata?.full_name ?? user.email ?? '') as string
+  const name   = (user.user_metadata?.full_name ?? user.email ?? '') as string
+  const email  = user.email ?? ''
   const displayName = name.split(' ')[0]
 
   return (
     <div ref={containerRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
       {syncing && <SyncDot />}
 
-      {/* Trigger: avatar + name */}
+      {/* Trigger: avatar + name, no border */}
       <button
         onClick={() => setOpen((o) => !o)}
         style={{
           display: 'flex', alignItems: 'center', gap: '0.4rem',
-          padding: '0.25rem 0.5rem 0.25rem 0.25rem',
-          borderRadius: '0.5rem', border: '1px solid var(--color-border)',
+          padding: '0.125rem 0.25rem',
+          borderRadius: '0.5rem', border: 'none',
           background: 'transparent', cursor: 'pointer',
         }}
       >
@@ -102,15 +149,11 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
           <img
             src={avatar}
             alt={name}
-            style={{
-              width: '1.625rem', height: '1.625rem',
-              borderRadius: '50%', border: '1.5px solid var(--color-border)',
-              flexShrink: 0,
-            }}
+            style={{ width: '1.75rem', height: '1.75rem', borderRadius: '50%', flexShrink: 0 }}
           />
         ) : (
           <span style={{
-            width: '1.625rem', height: '1.625rem', borderRadius: '50%',
+            width: '1.75rem', height: '1.75rem', borderRadius: '50%',
             background: 'var(--color-accent)', color: '#fff',
             fontSize: '0.7rem', fontWeight: 700, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -122,21 +165,15 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
         <span
           className="hidden sm:inline"
           style={{
-            fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text)',
+            fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-text)',
             maxWidth: '6rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}
         >
           {displayName}
         </span>
 
-        {/* Chevron */}
-        <svg
-          width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0, color: 'var(--color-text-muted)' }}
-        >
-          <path
-            d="M2 3.5L5 6.5L8 3.5"
-            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"
-          />
+        <svg width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0, color: 'var(--color-text-muted)' }}>
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
         </svg>
       </button>
 
@@ -152,24 +189,28 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
               position: 'absolute', top: 'calc(100% + 8px)', right: 0,
               background: 'var(--color-surface)',
               border: '1px solid var(--color-border)',
-              borderRadius: '0.75rem',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
-              minWidth: '140px', overflow: 'hidden', zIndex: 200,
+              borderRadius: '0.875rem',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.06)',
+              minWidth: '180px', overflow: 'hidden', zIndex: 200,
+              paddingTop: '0.25rem', paddingBottom: '0.25rem',
             }}
           >
-            <button
-              onClick={() => { setOpen(false); onSignOut() }}
-              style={{
-                width: '100%', padding: '0.625rem 1rem',
-                background: 'transparent', border: 'none',
-                textAlign: 'left', fontSize: '0.8125rem', fontWeight: 500,
-                color: 'var(--color-danger)', cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.06)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-            >
-              {t('auth.signOut')}
-            </button>
+            {/* Email */}
+            <div style={{ padding: '0.5rem 0.875rem 0.625rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {email}
+              </div>
+            </div>
+
+            {divider}
+
+            {/* Profile — placeholder for future page */}
+            {menuItem(<PersonIcon />, t('auth.profile'), () => setOpen(false))}
+
+            {divider}
+
+            {/* Sign out */}
+            {menuItem(<LogoutIcon />, t('auth.signOut'), () => { setOpen(false); onSignOut() }, true)}
           </motion.div>
         )}
       </AnimatePresence>

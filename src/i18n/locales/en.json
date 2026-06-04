@@ -92,7 +92,8 @@
     "signIn": "Sign in to sync",
     "signInTitle": "Sign in with Google to sync your trips across devices",
     "signOut": "Sign out",
-    "syncing": "Syncing…"
+    "syncing": "Syncing…",
+    "profile": "Profile"
   },
   "export": {
     "export": "Export",

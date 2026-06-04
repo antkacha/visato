@@ -24,7 +24,7 @@ const THEME_CYCLE: Theme[] = ['light', 'dark']
 
 const iconBtn: React.CSSProperties = {
   width: '2rem', height: '2rem', borderRadius: '0.5rem',
-  background: 'transparent', border: '1px solid var(--color-border)',
+  background: 'transparent', border: 'none',
   cursor: 'pointer', fontSize: '1rem',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   color: 'var(--color-text)', flexShrink: 0,
@@ -106,27 +106,31 @@ export default function Header({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
 
           {/* Language switcher — desktop only */}
-          <div
-            className="hidden md:flex"
-            style={{
-              borderRadius: '0.5rem', overflow: 'hidden',
-              border: '1px solid var(--color-border)', flexShrink: 0,
-            }}
-          >
-            {(['en', 'uk', 'ru'] as Language[]).map((lang) => (
-              <button
-                key={lang}
-                onClick={() => onLanguageChange(lang)}
-                style={{
-                  padding: '0.25rem 0.625rem',
-                  background: language === lang ? 'var(--color-accent)' : 'transparent',
-                  color: language === lang ? '#fff' : 'var(--color-text-muted)',
-                  border: 'none', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                  transition: 'background 0.15s ease, color 0.15s ease',
-                }}
-              >
-                {lang.toUpperCase()}
-              </button>
+          <div className="hidden md:flex" style={{ alignItems: 'center', gap: '0', flexShrink: 0 }}>
+            {(['en', 'uk', 'ru'] as Language[]).map((lang, i) => (
+              <div key={lang} style={{ display: 'flex', alignItems: 'center' }}>
+                {i > 0 && (
+                  <span style={{
+                    width: 1, height: '0.875rem',
+                    background: 'var(--color-border)',
+                    display: 'inline-block', flexShrink: 0,
+                  }} />
+                )}
+                <button
+                  onClick={() => onLanguageChange(lang)}
+                  style={{
+                    padding: '0.25rem 0.5rem',
+                    background: 'transparent', border: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: language === lang ? 700 : 400,
+                    color: language === lang ? '#2DBF8A' : 'var(--color-text-muted)',
+                    cursor: 'pointer',
+                    transition: 'color 0.15s ease',
+                  }}
+                >
+                  {lang.toUpperCase()}
+                </button>
+              </div>
             ))}
           </div>
 
