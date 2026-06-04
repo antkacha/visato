@@ -56,7 +56,7 @@ export default function MapPage({ trips }: Props) {
   const [dims, setDims]       = useState({ w: 800, h: 600 })
   const [countries, setCountries] = useState<GeoFeature[]>([])
   const [topoData, setTopoData]   = useState<unknown>(null)
-  const [, setHovered] = useState<GeoFeature | null>(null)
+  const [hoveredId, setHoveredId] = useState<string | number | null>(null)
   const [viewMode, setViewMode]   = useState<ViewMode>('globe')
   const [oceanDataUrl, setOceanDataUrl] = useState('')
 
@@ -280,8 +280,12 @@ export default function MapPage({ trips }: Props) {
   const getCapColor = useCallback((f: object) => {
     const feat = f as GeoFeature
     const slug = ISO_TO_SLUG[Number(feat.id)]
-    return visitedSlugs.has(slug) ? colors.visited : colors.unvisited
-  }, [visitedSlugs, colors])
+    const isVisited = visitedSlugs.has(slug)
+    // String comparison handles world-atlas string IDs vs numeric hoveredId
+    const isHovered = hoveredId !== null && String(feat.id) === String(hoveredId)
+    if (isHovered) return isVisited ? '#38D49A' : '#D8E4E0'
+    return isVisited ? colors.visited : colors.unvisited
+  }, [visitedSlugs, colors, hoveredId])
 
   const getLabel = useCallback((f: object) => {
     const feat = f as GeoFeature
@@ -290,12 +294,11 @@ export default function MapPage({ trips }: Props) {
     const name  = t(`countries.${slug}`, { defaultValue: slug })
     const flag  = COUNTRY_FLAGS[slug] ?? ''
     const stats = countryStats[slug]
-    const cardBg     = theme === 'dark' ? 'rgba(13,22,38,0.96)' : '#ffffff'
-    const textColor  = theme === 'dark' ? '#ffffff' : '#1a1a1a'
-    const subColor   = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'
-    const borderColor = stats ? '#2DBF8A' : (theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
-    return `<div style="background:${cardBg};color:${textColor};padding:8px 12px;border-radius:8px;font-family:Inter,sans-serif;font-size:13px;font-weight:600;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid ${borderColor};">${flag} ${name}${stats ? `<div style="margin-top:4px;font-size:11px;font-weight:400;color:${subColor}">${stats.trips} trip${stats.trips !== 1 ? 's' : ''} · ${stats.days} day${stats.days !== 1 ? 's' : ''}</div>` : ''}</div>`
-  }, [t, countryStats, theme])
+    const sub   = stats
+      ? `<div style="color:#6B7280;font-size:11px;font-weight:400;margin-top:3px;">${stats.trips} trip${stats.trips !== 1 ? 's' : ''} · ${stats.days} day${stats.days !== 1 ? 's' : ''}</div>`
+      : ''
+    return `<div style="background:#ffffff;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);border-left:4px solid #2DBF8A;padding:8px 12px;font-family:Inter,sans-serif;pointer-events:none;white-space:nowrap;"><div style="color:#1a1a1a;font-size:13px;font-weight:700;">${flag} ${name}</div>${sub}</div>`
+  }, [t, countryStats])
 
   const renderFlatTooltip = () => {
     if (!flatTooltip) return null
@@ -303,22 +306,23 @@ export default function MapPage({ trips }: Props) {
     const name  = t(`countries.${slug}`, { defaultValue: slug })
     const flag  = COUNTRY_FLAGS[slug] ?? ''
     const stats = countryStats[slug]
-    const cardBg     = theme === 'dark' ? 'rgba(13,22,38,0.96)' : '#ffffff'
-    const textColor  = theme === 'dark' ? '#ffffff' : '#1a1a1a'
-    const subColor   = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'
-    const borderColor = stats ? '#2DBF8A' : (theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
     return (
       <div style={{
         position: 'fixed', left: x + 14, top: y - 40, zIndex: 300,
-        pointerEvents: 'none', background: cardBg, color: textColor,
-        padding: '8px 12px', borderRadius: '8px',
-        fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600,
-        whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
-        border: `1px solid ${borderColor}`,
+        pointerEvents: 'none',
+        background: '#ffffff',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        borderLeft: '4px solid #2DBF8A',
+        padding: '8px 12px',
+        fontFamily: 'Inter, sans-serif',
+        whiteSpace: 'nowrap',
       }}>
-        {flag} {name}
+        <div style={{ color: '#1a1a1a', fontSize: '13px', fontWeight: 700 }}>
+          {flag} {name}
+        </div>
         {stats && (
-          <div style={{ marginTop: '4px', fontSize: '11px', fontWeight: 400, color: subColor }}>
+          <div style={{ color: '#6B7280', fontSize: '11px', fontWeight: 400, marginTop: '3px' }}>
             {stats.trips} trip{stats.trips !== 1 ? 's' : ''} · {stats.days} day{stats.days !== 1 ? 's' : ''}
           </div>
         )}
@@ -422,7 +426,7 @@ export default function MapPage({ trips }: Props) {
               polygonSideColor={() => 'transparent'}
               polygonStrokeColor={() => 'rgba(255,255,255,0.8)'}
               polygonLabel={getLabel}
-              onPolygonHover={f => setHovered(f as GeoFeature | null)}
+              onPolygonHover={f => setHoveredId(f ? (f as GeoFeature).id : null)}
               onGlobeReady={handleGlobeReady}
             />
           </div>
