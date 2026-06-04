@@ -296,10 +296,12 @@ export default function ProfilePage({ user, trips }: Props) {
               borderRadius: '0.875rem',
               padding: '1rem 0.75rem',
               minHeight: 96,
+              height: '100%',
               boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
               gap: '0.375rem', textAlign: 'center',
+              boxSizing: 'border-box',
             }}>
               <div style={{
                 fontSize: s.isString ? '1rem' : '1.75rem',
@@ -349,18 +351,37 @@ export default function ProfilePage({ user, trips }: Props) {
 
             <div>
               <label style={fieldLabel}>{t('profile.personal.homeCountry')}</label>
-              <select
-                value={homeCountry}
-                onChange={(e) => setHomeCountry(e.target.value)}
-                style={inputBase}
-              >
-                <option value="">{t('profile.personal.homeCountryPlaceholder')}</option>
-                {sortedCountries.map((c) => (
-                  <option key={c.slug} value={c.slug}>
-                    {c.flag} {t(`countries.${c.slug}`, { defaultValue: c.slug.replace(/_/g, ' ') })}
-                  </option>
-                ))}
-              </select>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={homeCountry}
+                  onChange={(e) => setHomeCountry(e.target.value)}
+                  style={{
+                    ...inputBase,
+                    paddingRight: '2.25rem',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                  }}
+                >
+                  <option value="">{t('profile.personal.homeCountryPlaceholder')}</option>
+                  {sortedCountries.map((c) => (
+                    <option key={c.slug} value={c.slug}>
+                      {c.flag} {t(`countries.${c.slug}`, { defaultValue: c.slug.replace(/_/g, ' ') })}
+                    </option>
+                  ))}
+                </select>
+                {/* Custom chevron — hidden from pointer events so clicks pass through */}
+                <span style={{
+                  position: 'absolute', right: '0.75rem', top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none', color: 'var(--color-text-muted)',
+                  display: 'flex', alignItems: 'center',
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 4.5L6 8.5L10 4.5" />
+                  </svg>
+                </span>
+              </div>
             </div>
 
             <div>
