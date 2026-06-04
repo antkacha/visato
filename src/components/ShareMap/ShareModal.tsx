@@ -181,13 +181,13 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         {/* Stats footer */}
         <div style={{
           flexShrink: 0,
-          padding: '20px 64px 26px',
+          padding: '32px 64px',
           background: '#F8FAFC',
           borderTop: '1px solid #EDEFF2',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
         }}>
           {/* Stat tiles */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 56 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 80 }}>
             {[
               { n: uniqueCountries, label: 'Countries' },
               { n: trips.length,    label: 'Trips' },
@@ -195,14 +195,14 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             ].map((s, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
                 <div style={{
-                  fontSize: 38, fontWeight: 900, color: '#2DBF8A',
-                  lineHeight: 1, letterSpacing: '-0.03em',
+                  fontSize: 48, fontWeight: 900, color: '#2DBF8A',
+                  lineHeight: 1, letterSpacing: '-0.03em', marginBottom: 8,
                 }}>
                   {s.n}
                 </div>
                 <div style={{
-                  fontSize: 10, color: '#9CA3AF', fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '0.09em', marginTop: 3,
+                  fontSize: 11, color: '#6B7280', fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '2px',
                 }}>
                   {s.label}
                 </div>
@@ -212,7 +212,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
 
           {/* User name */}
           {displayName && (
-            <div style={{ fontSize: 13, color: '#6B7280', fontWeight: 500 }}>
+            <div style={{ fontSize: 16, color: '#374151', fontWeight: 500, marginTop: 16 }}>
               — {displayName}
             </div>
           )}
