@@ -346,5 +346,9 @@
     "tripCount_other": "{{count}} trips",
     "dayCount_one": "{{count}} day",
     "dayCount_other": "{{count}} days"
+  },
+  "nav": {
+    "home": "Home",
+    "map": "My Map"
   }
 }

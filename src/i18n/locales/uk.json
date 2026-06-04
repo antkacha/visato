@@ -354,5 +354,9 @@
     "dayCount_few": "{{count}} дні",
     "dayCount_many": "{{count}} днів",
     "dayCount_other": "{{count}} дні"
+  },
+  "nav": {
+    "home": "Головна",
+    "map": "Моя карта"
   }
 }
