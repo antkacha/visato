@@ -374,5 +374,15 @@
       "saved": "Saved!"
     },
     "changePhoto": "Change photo"
+  },
+  "share": {
+    "button": "Share",
+    "title": "Share my map",
+    "generating": "Generating image…",
+    "download": "Download PNG",
+    "copy": "Copy image",
+    "copied": "Copied!",
+    "close": "Close",
+    "tagline": "My travel map"
   }
 }

@@ -79,7 +79,7 @@ function App() {
         onSignOut={signOut}
       />
 
-      {isMapPage     ? <MapPage trips={trips} /> :
+      {isMapPage     ? <MapPage trips={trips} user={user} /> :
        isProfilePage ? <ProfilePage user={user} trips={trips} /> : (
       <div style={{ opacity: langFading ? 0 : 1, transition: 'opacity 150ms ease' }}>
 

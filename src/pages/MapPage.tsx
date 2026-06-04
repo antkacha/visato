@@ -12,9 +12,12 @@ import { COUNTRY_FLAGS } from '../constants/countries'
 import { ISO_TO_SLUG } from '../constants/countryIsoMap'
 import { differenceInDays, parseISO } from 'date-fns'
 import { today } from '../utils/dateUtils'
+import type { User } from '@supabase/supabase-js'
+import ShareModal from '../components/ShareMap/ShareModal'
 
 interface Props {
   trips: TripEntry[]
+  user: User | null
 }
 
 interface GeoFeature {
@@ -78,7 +81,7 @@ function tripDays(trip: TripEntry): number {
   return differenceInDays(parseISO(exit), parseISO(trip.entryDate)) + 1
 }
 
-export default function MapPage({ trips }: Props) {
+export default function MapPage({ trips, user }: Props) {
   const { t } = useTranslation()
   const { theme } = useTheme()
   const colors = THEME[theme]
@@ -92,6 +95,7 @@ export default function MapPage({ trips }: Props) {
   const [hoveredId, setHoveredId] = useState<string | number | null>(null)
   const [viewMode, setViewMode]   = useState<ViewMode>('globe')
   const [oceanDataUrl, setOceanDataUrl] = useState('')
+  const [shareOpen, setShareOpen] = useState(false)
 
   // ── Flat-map state ──────────────────────────────────────────────────
   const mapContainerRef = useRef<HTMLDivElement>(null)
@@ -427,11 +431,13 @@ export default function MapPage({ trips }: Props) {
         overflow: 'hidden', position: 'relative',
       }}
     >
-      {/* ── Toggle ────────────────────────────────────────────────── */}
+      {/* ── Toggle + Share ────────────────────────────────────────── */}
       <div style={{
         height: `${TOGGLE_H}px`, display: 'flex', alignItems: 'center',
         justifyContent: 'center', flexShrink: 0, padding: '0 1rem',
+        position: 'relative',
       }}>
+        {/* View-mode pill */}
         <div style={{
           display: 'inline-flex', background: toggleBg,
           borderRadius: '999px', padding: '3px', gap: '2px',
@@ -455,6 +461,32 @@ export default function MapPage({ trips }: Props) {
             )
           })}
         </div>
+
+        {/* Share button — absolute right */}
+        <button
+          onClick={() => setShareOpen(true)}
+          style={{
+            position: 'absolute', right: '1rem',
+            display: 'flex', alignItems: 'center', gap: '0.3rem',
+            padding: '0.375rem 0.75rem',
+            borderRadius: '0.5rem',
+            border: '1.5px solid #2DBF8A',
+            background: 'transparent',
+            color: '#2DBF8A',
+            fontSize: '0.8125rem', fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          <span className="hidden sm:inline">{t('share.button')}</span>
+        </button>
       </div>
 
       {/* ── Map area ──────────────────────────────────────────────── */}
@@ -667,6 +699,15 @@ export default function MapPage({ trips }: Props) {
           </div>
         ))}
       </div>
+
+      {/* ── Share modal ───────────────────────────────────────────── */}
+      <ShareModal
+        isOpen={shareOpen}
+        onClose={() => setShareOpen(false)}
+        trips={trips}
+        topoData={topoData}
+        user={user}
+      />
     </div>
   )
 }
