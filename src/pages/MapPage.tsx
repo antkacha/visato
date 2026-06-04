@@ -17,7 +17,7 @@ interface Props {
 
 interface GeoFeature {
   type: string
-  id: number
+  id: string | number  // world-atlas stores IDs as strings in JSON
   properties: Record<string, unknown>
   geometry: unknown
 }
@@ -177,10 +177,32 @@ export default function MapPage({ trips }: Props) {
     [trips]
   )
 
+  // Per-country trip stats for tooltip
+  const countryStats = useMemo(() => {
+    const stats: Record<string, { trips: number; days: number }> = {}
+    for (const t of trips) {
+      if (!stats[t.country]) stats[t.country] = { trips: 0, days: 0 }
+      stats[t.country].trips += 1
+      stats[t.country].days += tripDays(t)
+    }
+    return stats
+  }, [trips])
+
+  // Debug: log trip slugs vs resolved GeoJSON slugs so matching issues are visible in console
+  useEffect(() => {
+    if (!countries.length || !trips.length) return
+    console.log('[Map] Trip country slugs:', [...visitedSlugs])
+    const visited = countries
+      .map((f) => ({ id: String(f.id), slug: ISO_TO_SLUG[Number(f.id)] }))
+      .filter(({ slug }) => slug && visitedSlugs.has(slug))
+    console.log('[Map] Matched GeoJSON features for visited countries:', visited)
+  }, [countries, trips.length, visitedSlugs])
+
   const getCapColor = useCallback(
     (f: object) => {
       const feat = f as GeoFeature
-      const slug = ISO_TO_SLUG[feat.id]
+      // feat.id is a string in world-atlas JSON — coerce to Number for the lookup
+      const slug = ISO_TO_SLUG[Number(feat.id)]
       return visitedSlugs.has(slug) ? colors.visited : colors.unvisited
     },
     [visitedSlugs, colors]
@@ -189,25 +211,21 @@ export default function MapPage({ trips }: Props) {
   const getLabel = useCallback(
     (f: object) => {
       const feat = f as GeoFeature
-      const slug = ISO_TO_SLUG[feat.id]
+      const slug = ISO_TO_SLUG[Number(feat.id)]
       if (!slug) return ''
       const name = t(`countries.${slug}`, { defaultValue: slug })
       const flag = COUNTRY_FLAGS[slug] ?? ''
-      const isVisited = visitedSlugs.has(slug)
-      return `<div style="
-        background: rgba(0,0,0,0.75);
-        color: #fff;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-family: Inter, sans-serif;
-        font-size: 13px;
-        font-weight: 500;
-        pointer-events: none;
-        white-space: nowrap;
-        border: 1px solid ${isVisited ? '#2DBF8A' : 'rgba(255,255,255,0.15)'};
-      ">${flag} ${name}</div>`
+      const stats = countryStats[slug]
+      const isVisited = !!stats
+
+      const cardBg = theme === 'dark' ? 'rgba(13,22,38,0.96)' : '#ffffff'
+      const textColor = theme === 'dark' ? '#ffffff' : '#1a1a1a'
+      const subColor = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'
+      const borderColor = isVisited ? '#2DBF8A' : (theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
+
+      return `<div style="background:${cardBg};color:${textColor};padding:8px 12px;border-radius:8px;font-family:Inter,sans-serif;font-size:13px;font-weight:600;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid ${borderColor};">${flag} ${name}${isVisited ? `<div style="margin-top:4px;font-size:11px;font-weight:400;color:${subColor}">${stats.trips} trip${stats.trips !== 1 ? 's' : ''} · ${stats.days} day${stats.days !== 1 ? 's' : ''}</div>` : ''}</div>`
     },
-    [t, visitedSlugs]
+    [t, countryStats, theme]
   )
 
   // ── Stats ──────────────────────────────────────────────────────────────
