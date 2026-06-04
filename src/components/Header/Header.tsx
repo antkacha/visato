@@ -77,6 +77,11 @@ export default function Header({
         </Link>
 
         {/* CENTER: Nav links */}
+        <style>{`
+          .nav-link        { color: #6B7280; border-bottom: 2px solid transparent; transition: color 0.15s ease; }
+          .nav-link:hover  { color: #2DBF8A; }
+          .nav-link-active { color: #2DBF8A; border-bottom: 2px solid #2DBF8A; }
+        `}</style>
         <nav style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
           {navLinks.map(({ label, to }) => {
             const active = isActive(to)
@@ -84,15 +89,12 @@ export default function Header({
               <Link
                 key={to}
                 to={to}
+                className={active ? 'nav-link-active' : 'nav-link'}
                 style={{
                   textDecoration: 'none',
-                  padding: '0.375rem 0.75rem',
-                  borderRadius: '0.5rem',
+                  padding: '0.375rem 0.75rem 4px',
                   fontSize: '0.875rem',
                   fontWeight: active ? 700 : 500,
-                  color: active ? '#2DBF8A' : 'var(--color-text-muted)',
-                  borderBottom: active ? '2px solid #2DBF8A' : '2px solid transparent',
-                  transition: 'color 0.15s ease, border-color 0.15s ease',
                   whiteSpace: 'nowrap',
                 }}
               >
