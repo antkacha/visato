@@ -181,6 +181,14 @@ export default function MapPage({ trips }: Props) {
     if (globe) applyGlobeMaterial(globe as any)
   }, [applyGlobeMaterial])
 
+  // Globe.gl caches the cap-color accessor internally; force re-evaluation when theme changes
+  useEffect(() => {
+    const g = globeRef.current as any
+    if (!g) return
+    try { g.polygonCapColor(getCapColor) } catch (_) {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme])
+
   // Stop/start globe rotation when view mode changes
   useEffect(() => {
     const g = globeRef.current as any
