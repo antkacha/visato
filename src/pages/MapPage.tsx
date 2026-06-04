@@ -71,7 +71,9 @@ export default function MapPage({ trips }: Props) {
   const [isPanning, setIsPanning] = useState(false)
   const [flatTooltip, setFlatTooltip]   = useState<{ x: number; y: number; slug: string } | null>(null)
   const [globeTooltip, setGlobeTooltip] = useState<{ x: number; y: number; slug: string } | null>(null)
-  const globeMouseRef = useRef({ x: 0, y: 0 })
+  const globeMouseRef    = useRef({ x: 0, y: 0 })
+  const [isButtonZooming, setIsButtonZooming] = useState(false)
+  const btnZoomTimer     = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // ── Ocean texture data URL (prevents three-globe default satellite image) ──
   useEffect(() => {
@@ -341,6 +343,22 @@ export default function MapPage({ trips }: Props) {
     },
   ]
 
+  // Zoom toward the center of the map container (used by +/- buttons)
+  const zoomAtCenter = useCallback((factor: number) => {
+    const el = mapContainerRef.current
+    if (!el) return
+    const cx = el.offsetWidth / 2
+    const cy = el.offsetHeight / 2
+    clearTimeout(btnZoomTimer.current)
+    setIsButtonZooming(true)
+    setPanZoom(prev => {
+      const s = Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev.scale * factor))
+      const k = s / prev.scale
+      return { scale: s, x: cx * (1 - k) + prev.x * k, y: cy * (1 - k) + prev.y * k }
+    })
+    btnZoomTimer.current = setTimeout(() => setIsButtonZooming(false), 350)
+  }, [])
+
   // ── Computed layout ─────────────────────────────────────────────────
   const globeH = Math.max(dims.h - 120 - TOGGLE_H, 200)
   // 2D map: full container width, ~60% of that as height (Been-app aspect ratio)
@@ -499,7 +517,11 @@ export default function MapPage({ trips }: Props) {
                     style={{ display: 'block', width: '100%', height: `${mapH}px`, background: 'transparent' }}
                   >
                     <g
-                      transform={`translate(${panZoom.x},${panZoom.y}) scale(${panZoom.scale})`}
+                      style={{
+                        transform: `translate(${panZoom.x}px,${panZoom.y}px) scale(${panZoom.scale})`,
+                        transformOrigin: '0 0',
+                        transition: isButtonZooming ? 'transform 0.3s ease-out' : 'none',
+                      }}
                       shapeRendering="geometricPrecision"
                     >
                       <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
@@ -544,12 +566,12 @@ export default function MapPage({ trips }: Props) {
               <div style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <button
                   style={zoomBtnStyle}
-                  onClick={() => setPanZoom(p => ({ ...p, scale: Math.min(MAX_SCALE, p.scale * 1.5) }))}
+                  onClick={() => zoomAtCenter(1.5)}
                   title="Zoom in"
                 >+</button>
                 <button
                   style={zoomBtnStyle}
-                  onClick={() => setPanZoom(p => ({ ...p, scale: Math.max(MIN_SCALE, p.scale / 1.5) }))}
+                  onClick={() => zoomAtCenter(1 / 1.5)}
                   title="Zoom out"
                 >−</button>
               </div>
