@@ -19,12 +19,12 @@ function tripDays(trip: TripEntry): number {
 
 const LOCALE_MAP: Record<string, string> = { en: 'en-US', uk: 'uk-UA', ru: 'ru-RU' }
 
-function CameraIcon() {
+function PlusIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-      <circle cx="12" cy="13" r="4"/>
+    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor"
+      strokeWidth="2.5" strokeLinecap="round">
+      <line x1="5.5" y1="1" x2="5.5" y2="10" />
+      <line x1="1" y1="5.5" x2="10" y2="5.5" />
     </svg>
   )
 }
@@ -39,7 +39,6 @@ export default function ProfilePage({ user, trips }: Props) {
   const [localAvatar, setLocalAvatar]  = useState<string | null>(null)
   const [saved, setSaved]              = useState(false)
 
-  // Load persisted profile
   useEffect(() => {
     const stored = loadProfile()
     const name = (user?.user_metadata?.full_name ?? user?.email ?? '') as string
@@ -49,7 +48,6 @@ export default function ProfilePage({ user, trips }: Props) {
     if (stored.photoUrl) setLocalAvatar(stored.photoUrl)
   }, [user])
 
-  // ── Photo upload ──────────────────────────────────────────────────────────
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -60,11 +58,9 @@ export default function ProfilePage({ user, trips }: Props) {
       saveProfile({ displayName, homeCountry, bio, photoUrl: dataUrl })
     }
     reader.readAsDataURL(file)
-    // Reset so the same file can be re-selected
     e.target.value = ''
   }
 
-  // ── Save form ─────────────────────────────────────────────────────────────
   const handleSave = () => {
     saveProfile({ displayName, homeCountry, bio, photoUrl: localAvatar ?? undefined })
     setSaved(true)
@@ -93,7 +89,6 @@ export default function ProfilePage({ user, trips }: Props) {
     [i18n.language],
   )
 
-  // ── Member since ──────────────────────────────────────────────────────────
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString(
         LOCALE_MAP[i18n.language] ?? 'en-US',
@@ -101,7 +96,6 @@ export default function ProfilePage({ user, trips }: Props) {
       )
     : null
 
-  // ── Not signed in ─────────────────────────────────────────────────────────
   if (!user) {
     return (
       <div style={{
@@ -114,18 +108,23 @@ export default function ProfilePage({ user, trips }: Props) {
     )
   }
 
-  const googleAvatar = user.user_metadata?.avatar_url as string | undefined
+  const googleAvatar  = user.user_metadata?.avatar_url as string | undefined
   const displayAvatar = localAvatar || googleAvatar
-  const fullName = (user.user_metadata?.full_name ?? user.email ?? '') as string
-  const email = user.email ?? ''
+  const fullName      = (user.user_metadata?.full_name ?? user.email ?? '') as string
+  const email         = user.email ?? ''
 
-  // ── Shared styles ─────────────────────────────────────────────────────────
-  const card: React.CSSProperties = {
-    background: 'var(--color-surface)',
+  // White input, light border — clean on white page
+  const inputBase: React.CSSProperties = {
+    width: '100%',
+    padding: '0.5625rem 0.75rem',
+    borderRadius: '0.5rem',
     border: '1px solid var(--color-border)',
-    borderRadius: '1rem',
-    padding: '1.5rem',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+    background: 'var(--color-surface)',
+    color: 'var(--color-text)',
+    fontSize: '0.875rem',
+    fontFamily: 'Inter, system-ui, sans-serif',
+    boxSizing: 'border-box',
+    outline: 'none',
   }
 
   const fieldLabel: React.CSSProperties = {
@@ -134,26 +133,12 @@ export default function ProfilePage({ user, trips }: Props) {
     fontWeight: 600,
     color: 'var(--color-text-muted)',
     marginBottom: '0.375rem',
-    letterSpacing: '0.01em',
-  }
-
-  const inputBase: React.CSSProperties = {
-    width: '100%',
-    padding: '0.5625rem 0.75rem',
-    borderRadius: '0.5rem',
-    border: '1px solid var(--color-border)',
-    background: 'var(--color-bg)',
-    color: 'var(--color-text)',
-    fontSize: '0.875rem',
-    fontFamily: 'Inter, system-ui, sans-serif',
-    boxSizing: 'border-box',
-    outline: 'none',
   }
 
   const statCards = [
-    { label: t('profile.stats.countries'), value: uniqueCountries, isString: false },
-    { label: t('profile.stats.trips'),     value: trips.length,    isString: false },
-    { label: t('profile.stats.days'),      value: totalDays,       isString: false },
+    { label: t('profile.stats.countries'), value: String(uniqueCountries), isString: false },
+    { label: t('profile.stats.trips'),     value: String(trips.length),    isString: false },
+    { label: t('profile.stats.days'),      value: String(totalDays),       isString: false },
     {
       label: t('profile.stats.topCountry'),
       value: topCountry
@@ -165,42 +150,41 @@ export default function ProfilePage({ user, trips }: Props) {
 
   return (
     <div style={{ background: 'var(--color-section)', minHeight: 'calc(100dvh - 56px)', padding: '2rem 1.25rem' }}>
-      <div style={{ maxWidth: '44rem', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ maxWidth: '44rem', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
-        {/* ── User header card ───────────────────────────────────────────── */}
-        <div style={{ ...card, display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+        {/* ── User header — no card, bare layout ────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
 
-          {/* Avatar with photo-change overlay */}
+          {/* Avatar + "+" overlay */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             {displayAvatar ? (
               <img
                 src={displayAvatar} alt={fullName}
-                style={{ width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+                style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', display: 'block' }}
               />
             ) : (
               <div style={{
-                width: 88, height: 88, borderRadius: '50%',
+                width: 80, height: 80, borderRadius: '50%',
                 background: '#2DBF8A', color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '2.25rem', fontWeight: 800,
+                fontSize: '2rem', fontWeight: 800,
               }}>
                 {fullName.charAt(0).toUpperCase()}
               </div>
             )}
 
-            {/* Camera overlay button */}
             <button
               onClick={() => fileInputRef.current?.click()}
               title={t('profile.changePhoto')}
               style={{
                 position: 'absolute', bottom: 1, right: 1,
-                width: 26, height: 26, borderRadius: '50%',
-                background: '#2DBF8A', border: '2px solid var(--color-surface)',
+                width: 24, height: 24, borderRadius: '50%',
+                background: '#2DBF8A', border: '2px solid var(--color-section)',
                 color: '#fff', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              <CameraIcon />
+              <PlusIcon />
             </button>
             <input
               ref={fileInputRef}
@@ -222,7 +206,8 @@ export default function ProfilePage({ user, trips }: Props) {
             </div>
             <div style={{
               fontSize: '0.875rem', color: 'var(--color-text-muted)',
-              marginBottom: '0.2rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              marginBottom: '0.2rem',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {email}
             </div>
@@ -234,28 +219,34 @@ export default function ProfilePage({ user, trips }: Props) {
           </div>
         </div>
 
-        {/* ── Stats grid ─────────────────────────────────────────────────── */}
+        {/* ── Stats grid — all 4 same height, vertically centered ────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {statCards.map((s, i) => (
             <div key={i} style={{
               background: 'var(--color-surface)',
               border: '1px solid var(--color-border)',
               borderRadius: '0.875rem',
-              padding: '1.125rem 0.875rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              gap: '0.3rem', textAlign: 'center',
+              padding: '1rem 0.75rem',
+              minHeight: 96,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              gap: '0.375rem', textAlign: 'center',
             }}>
               <div style={{
-                fontSize: s.isString ? '0.9375rem' : '1.75rem',
+                fontSize: s.isString ? '1rem' : '1.75rem',
                 fontWeight: 800,
                 color: '#2DBF8A',
-                lineHeight: 1,
+                lineHeight: 1.2,
                 letterSpacing: s.isString ? 0 : '-0.02em',
+                wordBreak: 'break-word',
               }}>
                 {s.value}
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.3 }}>
+              <div style={{
+                fontSize: '0.75rem', color: 'var(--color-text-muted)',
+                fontWeight: 500, lineHeight: 1.3,
+              }}>
                 {s.label}
               </div>
             </div>
@@ -263,15 +254,26 @@ export default function ProfilePage({ user, trips }: Props) {
         </div>
 
         {/* ── Personal info form ─────────────────────────────────────────── */}
-        <div style={card}>
-          <div style={{
-            fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-heading)',
-            marginBottom: '1.25rem',
-          }}>
-            {t('profile.personal.title')}
+        <div style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '1rem',
+          padding: '1.5rem',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+        }}>
+          {/* Section title with mint tab underline */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <span style={{
+              display: 'inline-block',
+              fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-heading)',
+              paddingBottom: '0.5rem',
+              borderBottom: '2px solid #2DBF8A',
+            }}>
+              {t('profile.personal.title')}
+            </span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
 
             {/* Display name */}
             <div>
@@ -284,7 +286,7 @@ export default function ProfilePage({ user, trips }: Props) {
               />
             </div>
 
-            {/* Home country — sorted alphabetically by current locale */}
+            {/* Home country */}
             <div>
               <label style={fieldLabel}>{t('profile.personal.homeCountry')}</label>
               <select
@@ -313,8 +315,8 @@ export default function ProfilePage({ user, trips }: Props) {
               />
             </div>
 
-            {/* Save */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.125rem' }}>
+            {/* Save — right-aligned, natural width */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 onClick={handleSave}
                 style={{
