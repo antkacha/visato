@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import Globe from 'react-globe.gl'
 import type { GlobeMethods } from 'react-globe.gl'
-import { motion } from 'framer-motion'
+import { ComposableMap, Geographies, Geography } from 'react-simple-maps'
+import { AnimatePresence, motion } from 'framer-motion'
 import { feature } from 'topojson-client'
 import type { Topology, GeometryCollection } from 'topojson-specification'
 import { useTranslation } from 'react-i18next'
@@ -25,27 +26,19 @@ interface GeoFeature {
 
 type ViewMode = 'globe' | 'map'
 
-// Pearl/porcelain globe palette — same for both themes
-const OCEAN_COLOR    = '#B8CCE0'   // soft pastel blue-white
-const OCEAN_EMISSIVE = '#8AAEC6'   // slightly deeper for shadow-side glow
+// Pearl/porcelain globe — consistent across themes
+const OCEAN_COLOR    = '#B8CCE0'
+const OCEAN_EMISSIVE = '#8AAEC6'
 const GLOBE_SHADOW   = 'drop-shadow(0px 25px 50px rgba(100,140,180,0.4))'
 
 const THEME = {
-  dark: {
-    bg: '#0c1424',
-    visited: '#2DBF8A',
-    unvisited: '#DDEAF5',
-    statBg: 'rgba(13,20,36,0.85)',
-  },
-  light: {
-    bg: '#F0FAF6',
-    visited: '#2DBF8A',
-    unvisited: '#DDEAF5',
-    statBg: 'rgba(255,255,255,0.92)',
-  },
+  dark:  { bg: '#0c1424', visited: '#2DBF8A', unvisited: '#DDEAF5', statBg: 'rgba(13,20,36,0.85)' },
+  light: { bg: '#F0FAF6', visited: '#2DBF8A', unvisited: '#DDEAF5', statBg: 'rgba(255,255,255,0.92)' },
 }
 
-const TOGGLE_H = 50
+const TOGGLE_H  = 50
+const MIN_SCALE = 0.6
+const MAX_SCALE = 15
 
 function tripDays(trip: TripEntry): number {
   const exit = trip.exitDate === 'ongoing' ? today() : trip.exitDate
@@ -57,16 +50,28 @@ export default function MapPage({ trips }: Props) {
   const { theme } = useTheme()
   const colors = THEME[theme]
 
-  const globeRef = useRef<GlobeMethods | undefined>(undefined)
+  // ── Globe refs / state ──────────────────────────────────────────────
+  const globeRef     = useRef<GlobeMethods | undefined>(undefined)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [dims, setDims] = useState({ w: 800, h: 600 })
+  const [dims, setDims]       = useState({ w: 800, h: 600 })
   const [countries, setCountries] = useState<GeoFeature[]>([])
+  const [topoData, setTopoData]   = useState<unknown>(null)
   const [, setHovered] = useState<GeoFeature | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode>('globe')
-
-  // Static 1x1 canvas in ocean color — prevents three-globe from loading
-  // its default satellite texture before applyGlobeMaterial fires.
+  const [viewMode, setViewMode]   = useState<ViewMode>('globe')
   const [oceanDataUrl, setOceanDataUrl] = useState('')
+
+  // ── Flat-map state ──────────────────────────────────────────────────
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+  const dragRef         = useRef<{ sx: number; sy: number; tx: number; ty: number } | null>(null)
+  const touchRef        = useRef<{
+    touches: Array<{ x: number; y: number }>
+    tx: number; ty: number; scale: number; dist: number
+  } | null>(null)
+  const [panZoom, setPanZoom]   = useState({ x: 0, y: 0, scale: 1 })
+  const [isPanning, setIsPanning] = useState(false)
+  const [flatTooltip, setFlatTooltip] = useState<{ x: number; y: number; slug: string } | null>(null)
+
+  // ── Ocean texture data URL (prevents three-globe default satellite image) ──
   useEffect(() => {
     const canvas = document.createElement('canvas')
     canvas.width = 2; canvas.height = 1
@@ -76,31 +81,27 @@ export default function MapPage({ trips }: Props) {
     setOceanDataUrl(canvas.toDataURL('image/png'))
   }, [])
 
-  // Load world atlas GeoJSON for the Globe polygons
+  // ── Load world atlas ────────────────────────────────────────────────
   useEffect(() => {
     import('world-atlas/countries-110m.json').then((mod) => {
       const topo = mod.default as unknown as Topology<{ countries: GeometryCollection }>
-      const geo = feature(topo, topo.objects.countries)
+      const geo  = feature(topo, topo.objects.countries)
       setCountries((geo as unknown as { features: GeoFeature[] }).features)
+      setTopoData(mod.default)
     })
   }, [])
 
-  // Track container size for explicit Globe width/height
+  // ── Container resize observer ───────────────────────────────────────
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    const ro = new ResizeObserver(() => {
-      setDims({ w: el.offsetWidth, h: el.offsetHeight })
-    })
+    const ro = new ResizeObserver(() => setDims({ w: el.offsetWidth, h: el.offsetHeight }))
     ro.observe(el)
     setDims({ w: el.offsetWidth, h: el.offsetHeight })
     return () => ro.disconnect()
   }, [])
 
-  // Pearl globe material:
-  //   mat.color     = base color (lit side)
-  //   mat.emissive  = self-glow color (shadow side)
-  //   emissiveIntensity 0.5 + softened DirectionalLight → natural spherical shading
+  // ── Globe material (pearl shading) ──────────────────────────────────
   const applyGlobeMaterial = useCallback((g: any) => {
     const applyMat = (mat: any) => {
       mat.map = null
@@ -109,42 +110,32 @@ export default function MapPage({ trips }: Props) {
       mat.emissiveIntensity = 0.5
       mat.needsUpdate = true
     }
-    try { applyMat(g.globeMaterial()) } catch (_) { /* ignore */ }
+    try { applyMat(g.globeMaterial()) } catch (_) {}
     try {
       const scene = g.scene()
-      // Soften (not remove) DirectionalLights so they contribute gentle shading
       scene.children
         .filter((c: any) => c.type === 'DirectionalLight')
         .forEach((c: any) => { c.intensity = 0.35 })
       const sphereMesh = scene.children.find((c: any) => c.isMesh)
       if (sphereMesh) applyMat(sphereMesh.material)
-    } catch (_) { /* ignore */ }
+    } catch (_) {}
   }, [])
 
   const handleGlobeReady = useCallback(() => {
     const globe = globeRef.current
     if (!globe) return
     const g = globe as any
-
     applyGlobeMaterial(g)
     setTimeout(() => applyGlobeMaterial(g), 100)
     setTimeout(() => applyGlobeMaterial(g), 500)
-
-    try {
-      g.scene().background = null
-      g.renderer().setClearColor(0x000000, 0)
-    } catch (_) { /* ignore */ }
-
+    try { g.scene().background = null; g.renderer().setClearColor(0x000000, 0) } catch (_) {}
     const ctrl = g.controls()
     ctrl.autoRotate = true
     ctrl.autoRotateSpeed = 0.4
     let timer: ReturnType<typeof setTimeout>
     ctrl.addEventListener('start', () => { ctrl.autoRotate = false; clearTimeout(timer) })
     ctrl.addEventListener('end', () => {
-      // Only restore auto-rotation in globe mode
-      if (viewMode === 'globe') {
-        timer = setTimeout(() => { ctrl.autoRotate = true }, 2000)
-      }
+      if (viewMode === 'globe') timer = setTimeout(() => { ctrl.autoRotate = true }, 2000)
     })
   }, [applyGlobeMaterial, viewMode])
 
@@ -153,98 +144,201 @@ export default function MapPage({ trips }: Props) {
     if (globe) applyGlobeMaterial(globe as any)
   }, [applyGlobeMaterial])
 
-  // When the user switches views, fly the camera to the right position
+  // Stop/start globe rotation when view mode changes
   useEffect(() => {
     const g = globeRef.current as any
     if (!g) return
     try {
       const ctrl = g.controls()
-      if (!ctrl) return
-      if (viewMode === 'map') {
-        ctrl.autoRotate = false
-        // Fly to Europe, close enough to see individual countries
-        g.pointOfView({ lat: 52, lng: 14, altitude: 1.3 }, 1200)
-      } else {
-        ctrl.autoRotate = true
-        g.pointOfView({ lat: 20, lng: 0, altitude: 2.5 }, 1000)
-      }
-    } catch (_) { /* ignore */ }
+      if (ctrl) ctrl.autoRotate = viewMode === 'globe'
+    } catch (_) {}
   }, [viewMode])
 
-  const visitedSlugs = useMemo(
-    () => new Set(trips.map((t) => t.country)),
-    [trips]
-  )
+  // ── Flat-map non-passive events (wheel + touch) ─────────────────────
+  useEffect(() => {
+    const el = mapContainerRef.current
+    if (!el || viewMode !== 'map') return
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = el.getBoundingClientRect()
+      const cx = e.clientX - rect.left
+      const cy = e.clientY - rect.top
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12
+      setPanZoom(prev => {
+        const s = Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev.scale * factor))
+        const k = s / prev.scale
+        return { scale: s, x: cx * (1 - k) + prev.x * k, y: cy * (1 - k) + prev.y * k }
+      })
+    }
+
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault()
+      setPanZoom(prev => {
+        if (e.touches.length === 1) {
+          touchRef.current = {
+            touches: [{ x: e.touches[0].clientX, y: e.touches[0].clientY }],
+            tx: prev.x, ty: prev.y, scale: prev.scale, dist: 0,
+          }
+        } else if (e.touches.length >= 2) {
+          const dist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY,
+          )
+          touchRef.current = {
+            touches: [
+              { x: e.touches[0].clientX, y: e.touches[0].clientY },
+              { x: e.touches[1].clientX, y: e.touches[1].clientY },
+            ],
+            tx: prev.x, ty: prev.y, scale: prev.scale, dist,
+          }
+        }
+        return prev
+      })
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault()
+      const ts = touchRef.current
+      if (!ts) return
+      if (e.touches.length >= 2 && ts.touches.length >= 2) {
+        const newDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY,
+        )
+        const k       = (newDist / ts.dist)
+        const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, ts.scale * k))
+        const sk       = newScale / ts.scale
+        const midX    = (e.touches[0].clientX + e.touches[1].clientX) / 2
+        const midY    = (e.touches[0].clientY + e.touches[1].clientY) / 2
+        const iMidX   = (ts.touches[0].x + ts.touches[1].x) / 2
+        const iMidY   = (ts.touches[0].y + ts.touches[1].y) / 2
+        setPanZoom({
+          scale: newScale,
+          x: iMidX * (1 - sk) + ts.tx * sk + (midX - iMidX),
+          y: iMidY * (1 - sk) + ts.ty * sk + (midY - iMidY),
+        })
+      } else if (e.touches.length === 1 && ts.touches.length >= 1) {
+        setPanZoom(prev => ({
+          ...prev,
+          x: ts.tx + e.touches[0].clientX - ts.touches[0].x,
+          y: ts.ty + e.touches[0].clientY - ts.touches[0].y,
+        }))
+      }
+    }
+
+    const onTouchEnd = () => { touchRef.current = null }
+
+    el.addEventListener('wheel',      onWheel,      { passive: false })
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchmove',  onTouchMove,  { passive: false })
+    el.addEventListener('touchend',   onTouchEnd)
+    return () => {
+      el.removeEventListener('wheel',      onWheel)
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove',  onTouchMove)
+      el.removeEventListener('touchend',   onTouchEnd)
+    }
+  }, [viewMode])
+
+  // ── Mouse drag (window-level so out-of-bounds moves still work) ─────
+  useEffect(() => {
+    if (viewMode !== 'map') return
+    const onMove = (e: MouseEvent) => {
+      const dr = dragRef.current
+      if (!dr) return
+      setPanZoom(prev => ({ ...prev, x: dr.tx + e.clientX - dr.sx, y: dr.ty + e.clientY - dr.sy }))
+    }
+    const onUp = () => { dragRef.current = null; setIsPanning(false) }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup',   onUp)
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+  }, [viewMode])
+
+  // ── Data / tooltip helpers ──────────────────────────────────────────
+  const visitedSlugs = useMemo(() => new Set(trips.map(t => t.country)), [trips])
 
   const countryStats = useMemo(() => {
     const stats: Record<string, { trips: number; days: number }> = {}
     for (const t of trips) {
       if (!stats[t.country]) stats[t.country] = { trips: 0, days: 0 }
       stats[t.country].trips += 1
-      stats[t.country].days += tripDays(t)
+      stats[t.country].days  += tripDays(t)
     }
     return stats
   }, [trips])
 
   useEffect(() => {
     if (!countries.length || !trips.length) return
-    console.log('[Map] Trip country slugs:', [...visitedSlugs])
-    const visited = countries
-      .map((f) => ({ id: String(f.id), slug: ISO_TO_SLUG[Number(f.id)] }))
+    console.log('[Map] Trip slugs:', [...visitedSlugs])
+    const matched = countries
+      .map(f => ({ id: String(f.id), slug: ISO_TO_SLUG[Number(f.id)] }))
       .filter(({ slug }) => slug && visitedSlugs.has(slug))
-    console.log('[Map] Matched GeoJSON features for visited countries:', visited)
+    console.log('[Map] Matched features:', matched)
   }, [countries, trips.length, visitedSlugs])
 
-  const getCapColor = useCallback(
-    (f: object) => {
-      const feat = f as GeoFeature
-      const slug = ISO_TO_SLUG[Number(feat.id)]
-      return visitedSlugs.has(slug) ? colors.visited : colors.unvisited
-    },
-    [visitedSlugs, colors]
-  )
+  const getCapColor = useCallback((f: object) => {
+    const feat = f as GeoFeature
+    const slug = ISO_TO_SLUG[Number(feat.id)]
+    return visitedSlugs.has(slug) ? colors.visited : colors.unvisited
+  }, [visitedSlugs, colors])
 
-  const getLabel = useCallback(
-    (f: object) => {
-      const feat = f as GeoFeature
-      const slug = ISO_TO_SLUG[Number(feat.id)]
-      if (!slug) return ''
-      const name = t(`countries.${slug}`, { defaultValue: slug })
-      const flag = COUNTRY_FLAGS[slug] ?? ''
-      const stats = countryStats[slug]
-      const isVisited = !!stats
-      const cardBg = theme === 'dark' ? 'rgba(13,22,38,0.96)' : '#ffffff'
-      const textColor = theme === 'dark' ? '#ffffff' : '#1a1a1a'
-      const subColor = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'
-      const borderColor = isVisited ? '#2DBF8A' : (theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
-      return `<div style="background:${cardBg};color:${textColor};padding:8px 12px;border-radius:8px;font-family:Inter,sans-serif;font-size:13px;font-weight:600;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid ${borderColor};">${flag} ${name}${isVisited ? `<div style="margin-top:4px;font-size:11px;font-weight:400;color:${subColor}">${stats.trips} trip${stats.trips !== 1 ? 's' : ''} · ${stats.days} day${stats.days !== 1 ? 's' : ''}</div>` : ''}</div>`
-    },
-    [t, countryStats, theme]
-  )
+  const getLabel = useCallback((f: object) => {
+    const feat = f as GeoFeature
+    const slug = ISO_TO_SLUG[Number(feat.id)]
+    if (!slug) return ''
+    const name  = t(`countries.${slug}`, { defaultValue: slug })
+    const flag  = COUNTRY_FLAGS[slug] ?? ''
+    const stats = countryStats[slug]
+    const cardBg     = theme === 'dark' ? 'rgba(13,22,38,0.96)' : '#ffffff'
+    const textColor  = theme === 'dark' ? '#ffffff' : '#1a1a1a'
+    const subColor   = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'
+    const borderColor = stats ? '#2DBF8A' : (theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
+    return `<div style="background:${cardBg};color:${textColor};padding:8px 12px;border-radius:8px;font-family:Inter,sans-serif;font-size:13px;font-weight:600;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.25);border:1px solid ${borderColor};">${flag} ${name}${stats ? `<div style="margin-top:4px;font-size:11px;font-weight:400;color:${subColor}">${stats.trips} trip${stats.trips !== 1 ? 's' : ''} · ${stats.days} day${stats.days !== 1 ? 's' : ''}</div>` : ''}</div>`
+  }, [t, countryStats, theme])
 
-  // ── Stats ──────────────────────────────────────────────────────────────
-  const uniqueCountries = useMemo(
-    () => [...new Set(trips.map((t) => t.country))],
-    [trips]
-  )
+  const renderFlatTooltip = () => {
+    if (!flatTooltip) return null
+    const { x, y, slug } = flatTooltip
+    const name  = t(`countries.${slug}`, { defaultValue: slug })
+    const flag  = COUNTRY_FLAGS[slug] ?? ''
+    const stats = countryStats[slug]
+    const cardBg     = theme === 'dark' ? 'rgba(13,22,38,0.96)' : '#ffffff'
+    const textColor  = theme === 'dark' ? '#ffffff' : '#1a1a1a'
+    const subColor   = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'
+    const borderColor = stats ? '#2DBF8A' : (theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
+    return (
+      <div style={{
+        position: 'fixed', left: x + 14, top: y - 40, zIndex: 300,
+        pointerEvents: 'none', background: cardBg, color: textColor,
+        padding: '8px 12px', borderRadius: '8px',
+        fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600,
+        whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+        border: `1px solid ${borderColor}`,
+      }}>
+        {flag} {name}
+        {stats && (
+          <div style={{ marginTop: '4px', fontSize: '11px', fontWeight: 400, color: subColor }}>
+            {stats.trips} trip{stats.trips !== 1 ? 's' : ''} · {stats.days} day{stats.days !== 1 ? 's' : ''}
+          </div>
+        )}
+      </div>
+    )
+  }
 
-  const totalDays = useMemo(
-    () => trips.reduce((sum, t) => sum + tripDays(t), 0),
-    [trips]
-  )
-
+  // ── Stats bar data ──────────────────────────────────────────────────
+  const uniqueCountries = useMemo(() => [...new Set(trips.map(t => t.country))], [trips])
+  const totalDays = useMemo(() => trips.reduce((s, t) => s + tripDays(t), 0), [trips])
   const topCountry = useMemo(() => {
-    if (trips.length === 0) return null
-    const daysByCountry: Record<string, number> = {}
-    for (const t of trips) {
-      daysByCountry[t.country] = (daysByCountry[t.country] ?? 0) + tripDays(t)
-    }
-    return Object.entries(daysByCountry).sort(([, a], [, b]) => b - a)[0]
+    if (!trips.length) return null
+    const byCountry: Record<string, number> = {}
+    for (const t of trips) byCountry[t.country] = (byCountry[t.country] ?? 0) + tripDays(t)
+    return Object.entries(byCountry).sort(([, a], [, b]) => b - a)[0]
   }, [trips])
 
   const statsItems = [
     { label: t('map.totalCountries'), value: uniqueCountries.length },
-    { label: t('map.totalDays'), value: totalDays },
+    { label: t('map.totalDays'),      value: totalDays },
     {
       label: t('map.topCountry'),
       value: topCountry
@@ -253,9 +347,22 @@ export default function MapPage({ trips }: Props) {
     },
   ]
 
-  const globeH = Math.max(dims.h - 120 - TOGGLE_H, 200)
-  const toggleBg = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
-  const inactiveColor = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)'
+  // ── Computed layout ─────────────────────────────────────────────────
+  const globeH      = Math.max(dims.h - 120 - TOGGLE_H, 200)
+  // Projection scale that fits the whole world inside dims.w × globeH
+  const flatScale   = dims.w > 0 ? Math.min(dims.w / 5.5, Math.max(globeH, 200) / 3.2) : 150
+  const toggleBg    = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+  const inactiveClr = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)'
+
+  const zoomBtnStyle: React.CSSProperties = {
+    width: 34, height: 34, borderRadius: 8, border: 'none',
+    background: theme === 'dark' ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.92)',
+    color: theme === 'dark' ? '#fff' : '#374151',
+    fontSize: 20, lineHeight: '1', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.18)', fontFamily: 'Inter, system-ui, sans-serif',
+    userSelect: 'none', WebkitUserSelect: 'none',
+  }
 
   return (
     <div
@@ -263,49 +370,31 @@ export default function MapPage({ trips }: Props) {
       style={{
         height: 'calc(100dvh - 56px)',
         background: colors.bg,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        position: 'relative',
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden', position: 'relative',
       }}
     >
-      {/* View toggle */}
+      {/* ── Toggle ────────────────────────────────────────────────── */}
       <div style={{
-        height: `${TOGGLE_H}px`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        padding: '0 1rem',
+        height: `${TOGGLE_H}px`, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', flexShrink: 0, padding: '0 1rem',
       }}>
         <div style={{
-          display: 'inline-flex',
-          background: toggleBg,
-          borderRadius: '999px',
-          padding: '3px',
-          gap: '2px',
+          display: 'inline-flex', background: toggleBg,
+          borderRadius: '999px', padding: '3px', gap: '2px',
         }}>
-          {(['globe', 'map'] as ViewMode[]).map((mode) => {
+          {(['globe', 'map'] as ViewMode[]).map(mode => {
             const isActive = viewMode === mode
             return (
               <motion.button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                animate={{
-                  backgroundColor: isActive ? '#2DBF8A' : 'rgba(0,0,0,0)',
-                  color: isActive ? '#ffffff' : inactiveColor,
-                }}
+                animate={{ backgroundColor: isActive ? '#2DBF8A' : 'rgba(0,0,0,0)', color: isActive ? '#fff' : inactiveClr }}
                 transition={{ duration: 0.22, ease: 'easeInOut' }}
                 style={{
-                  border: 'none',
-                  borderRadius: '999px',
-                  padding: '6px 18px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontFamily: 'Inter, system-ui, sans-serif',
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1.4,
+                  border: 'none', borderRadius: '999px', padding: '6px 18px',
+                  fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                  fontFamily: 'Inter, system-ui, sans-serif', whiteSpace: 'nowrap', lineHeight: 1.4,
                 }}
               >
                 {mode === 'globe' ? `🌍 ${t('map.view3d')}` : `🗺️ ${t('map.view2d')}`}
@@ -315,8 +404,10 @@ export default function MapPage({ trips }: Props) {
         </div>
       </div>
 
-      {/* Map area — single Globe, behavior changes with viewMode */}
+      {/* ── Map area ──────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+
+        {/* 3D Globe — always mounted to avoid WebGL teardown */}
         {countries.length > 0 ? (
           <div style={{ filter: GLOBE_SHADOW }}>
             <Globe
@@ -331,7 +422,7 @@ export default function MapPage({ trips }: Props) {
               polygonSideColor={() => 'transparent'}
               polygonStrokeColor={() => 'rgba(255,255,255,0.8)'}
               polygonLabel={getLabel}
-              onPolygonHover={(f) => setHovered(f as GeoFeature | null)}
+              onPolygonHover={f => setHovered(f as GeoFeature | null)}
               onGlobeReady={handleGlobeReady}
             />
           </div>
@@ -345,12 +436,13 @@ export default function MapPage({ trips }: Props) {
             Loading globe…
           </div>
         )}
-        {trips.length === 0 && countries.length > 0 && (
+
+        {/* No-trips hint for globe mode */}
+        {trips.length === 0 && countries.length > 0 && viewMode === 'globe' && (
           <div style={{
-            position: 'absolute', bottom: '1rem', left: '50%',
-            transform: 'translateX(-50%)',
-            background: colors.statBg,
-            padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.8125rem',
+            position: 'absolute', bottom: '1rem', left: '50%', transform: 'translateX(-50%)',
+            background: colors.statBg, padding: '0.5rem 1rem', borderRadius: '2rem',
+            fontSize: '0.8125rem',
             color: theme === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)',
             backdropFilter: 'blur(8px)', border: `1px solid rgba(255,255,255,0.12)`,
             whiteSpace: 'nowrap',
@@ -358,72 +450,141 @@ export default function MapPage({ trips }: Props) {
             {t('map.noTrips')}
           </div>
         )}
-        {/* Hint shown in map mode */}
-        {viewMode === 'map' && countries.length > 0 && (
-          <div style={{
-            position: 'absolute', bottom: '1rem', right: '1rem',
-            fontSize: '0.75rem',
-            color: theme === 'dark' ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)',
-            fontFamily: 'Inter, sans-serif',
-            pointerEvents: 'none',
-          }}>
-            Scroll to zoom · Drag to pan
-          </div>
-        )}
+
+        {/* 2D flat-map overlay — fades in over the globe */}
+        <AnimatePresence>
+          {viewMode === 'map' && (
+            <motion.div
+              key="flat"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              style={{ position: 'absolute', inset: 0, background: colors.bg, overflow: 'hidden' }}
+            >
+              {/* Pan/zoom interaction surface */}
+              <div
+                ref={mapContainerRef}
+                style={{ position: 'absolute', inset: 0, cursor: isPanning ? 'grabbing' : 'grab', touchAction: 'none' }}
+                onMouseDown={e => {
+                  if (e.button !== 0) return
+                  setPanZoom(prev => {
+                    dragRef.current = { sx: e.clientX, sy: e.clientY, tx: prev.x, ty: prev.y }
+                    return prev
+                  })
+                  setIsPanning(true)
+                }}
+                onMouseLeave={() => setFlatTooltip(null)}
+              >
+                {/* CSS-transform wrapper — all zoom/pan applied here */}
+                <div style={{
+                  transform: `translate(${panZoom.x}px,${panZoom.y}px) scale(${panZoom.scale})`,
+                  transformOrigin: '0 0',
+                  width: '100%', height: '100%',
+                  willChange: 'transform',
+                }}>
+                  {!!topoData && (
+                    <ComposableMap
+                      width={dims.w}
+                      height={globeH}
+                      projectionConfig={{ scale: flatScale }}
+                      style={{ display: 'block', width: '100%', height: '100%', background: 'transparent' }}
+                    >
+                      <Geographies geography={topoData}>
+                        {({ geographies }) =>
+                          geographies.map(geo => {
+                            const slug = ISO_TO_SLUG[Number(geo.id)]
+                            const isVisited = !!slug && visitedSlugs.has(slug)
+                            return (
+                              <Geography
+                                key={geo.rsmKey}
+                                geography={geo}
+                                fill={isVisited ? '#2DBF8A' : '#E0E0E0'}
+                                stroke="#FFFFFF"
+                                strokeWidth={0.5}
+                                onMouseEnter={e => {
+                                  if (slug) setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
+                                }}
+                                onMouseMove={e => {
+                                  if (slug) setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
+                                }}
+                                onMouseLeave={() => setFlatTooltip(null)}
+                                style={{
+                                  default: { outline: 'none' },
+                                  hover: { fill: isVisited ? '#25A876' : '#CCCCCC', outline: 'none', cursor: 'pointer' },
+                                  pressed: { outline: 'none' },
+                                }}
+                              />
+                            )
+                          })
+                        }
+                      </Geographies>
+                    </ComposableMap>
+                  )}
+                </div>
+              </div>
+
+              {/* Zoom +/− buttons */}
+              <div style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <button
+                  style={zoomBtnStyle}
+                  onClick={() => setPanZoom(p => ({ ...p, scale: Math.min(MAX_SCALE, p.scale * 1.5) }))}
+                  title="Zoom in"
+                >+</button>
+                <button
+                  style={zoomBtnStyle}
+                  onClick={() => setPanZoom(p => ({ ...p, scale: Math.max(MIN_SCALE, p.scale / 1.5) }))}
+                  title="Zoom out"
+                >−</button>
+              </div>
+
+              {/* No-trips hint */}
+              {trips.length === 0 && !!topoData && (
+                <div style={{
+                  position: 'absolute', bottom: '1rem', left: '50%', transform: 'translateX(-50%)',
+                  background: colors.statBg, padding: '0.5rem 1rem', borderRadius: '2rem',
+                  fontSize: '0.8125rem',
+                  color: theme === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)',
+                  backdropFilter: 'blur(8px)', border: `1px solid rgba(255,255,255,0.12)`,
+                  whiteSpace: 'nowrap',
+                }}>
+                  {t('map.noTrips')}
+                </div>
+              )}
+
+              {renderFlatTooltip()}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Stats bar */}
+      {/* ── Stats bar ─────────────────────────────────────────────── */}
       <div style={{
-        height: '120px',
-        background: colors.statBg,
-        backdropFilter: 'blur(12px)',
+        height: '120px', background: colors.statBg, backdropFilter: 'blur(12px)',
         borderTop: `1px solid rgba(255,255,255,0.08)`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '1px',
-        padding: '0 1rem',
-        flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: '1px', padding: '0 1rem', flexShrink: 0,
       }}>
         {statsItems.map((s, i) => (
-          <div
-            key={i}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0.75rem 0.5rem',
-              borderRight: i < statsItems.length - 1
-                ? `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`
-                : 'none',
-            }}
-          >
+          <div key={i} style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', padding: '0.75rem 0.5rem',
+            borderRight: i < statsItems.length - 1
+              ? `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`
+              : 'none',
+          }}>
             <span style={{
-              fontSize: 'clamp(1.25rem, 3vw, 1.75rem)',
-              fontWeight: 800,
-              color: '#2DBF8A',
-              lineHeight: 1,
-              letterSpacing: '-0.02em',
+              fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800,
+              color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.02em',
               fontFamily: 'Inter, system-ui, sans-serif',
-              maxWidth: '100%',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}>
-              {s.value}
-            </span>
+              maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{s.value}</span>
             <span style={{
               fontSize: 'clamp(0.6875rem, 1.5vw, 0.8125rem)',
               color: theme === 'dark' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)',
-              marginTop: '0.25rem',
-              textAlign: 'center',
-              fontFamily: 'Inter, system-ui, sans-serif',
-              lineHeight: 1.2,
-            }}>
-              {s.label}
-            </span>
+              marginTop: '0.25rem', textAlign: 'center',
+              fontFamily: 'Inter, system-ui, sans-serif', lineHeight: 1.2,
+            }}>{s.label}</span>
           </div>
         ))}
       </div>
