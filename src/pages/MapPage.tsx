@@ -490,21 +490,19 @@ export default function MapPage({ trips }: Props) {
                 }}
                 onMouseLeave={() => setFlatTooltip(null)}
               >
-                {/* CSS-transform wrapper — all zoom/pan applied here */}
-                <div style={{
-                  transform: `translate(${panZoom.x}px,${panZoom.y}px) scale(${panZoom.scale})`,
-                  transformOrigin: '0 0',
-                  width: '100%', height: '100%',
-                  willChange: 'transform',
-                }}>
-                  {!!topoData && (
-                    <ComposableMap
-                      width={dims.w}
-                      height={globeH}
-                      projectionConfig={{ scale: flatScale }}
-                      style={{ display: 'block', width: '100%', height: '100%', background: 'transparent' }}
+                {/* SVG-space transform — zoom/pan via <g transform> keeps paths vector-sharp */}
+                {!!topoData && (
+                  <ComposableMap
+                    width={dims.w}
+                    height={globeH}
+                    projectionConfig={{ scale: flatScale }}
+                    style={{ display: 'block', width: '100%', height: '100%', background: 'transparent' }}
+                  >
+                    <g
+                      transform={`translate(${panZoom.x},${panZoom.y}) scale(${panZoom.scale})`}
+                      shapeRendering="geometricPrecision"
                     >
-                      <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json">
+                      <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
                         {({ geographies }) =>
                           geographies.map(geo => {
                             const slug = ISO_TO_SLUG[Number(geo.id)]
@@ -515,7 +513,8 @@ export default function MapPage({ trips }: Props) {
                                 geography={geo}
                                 fill={isVisited ? '#2DBF8A' : '#E0E0E0'}
                                 stroke="#FFFFFF"
-                                strokeWidth={0.5 / panZoom.scale}
+                                strokeWidth={0.3}
+                                vectorEffect="non-scaling-stroke"
                                 onMouseEnter={e => {
                                   if (slug) setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
                                 }}
@@ -533,9 +532,9 @@ export default function MapPage({ trips }: Props) {
                           })
                         }
                       </Geographies>
-                    </ComposableMap>
-                  )}
-                </div>
+                    </g>
+                  </ComposableMap>
+                )}
               </div>
 
               {/* Zoom +/− buttons */}
