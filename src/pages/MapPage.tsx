@@ -26,14 +26,47 @@ interface GeoFeature {
 
 type ViewMode = 'globe' | 'map'
 
-// Pearl/porcelain globe — consistent across themes
-const OCEAN_COLOR    = '#B8CCE0'
-const OCEAN_EMISSIVE = '#8AAEC6'
-const GLOBE_SHADOW   = 'drop-shadow(0px 25px 50px rgba(100,140,180,0.4))'
-
 const THEME = {
-  dark:  { bg: '#0c1424', visited: '#2DBF8A', unvisited: '#DDEAF5', statBg: 'rgba(13,20,36,0.85)' },
-  light: { bg: '#F0FAF6', visited: '#2DBF8A', unvisited: '#DDEAF5', statBg: 'rgba(255,255,255,0.92)' },
+  dark: {
+    bg: '#0c1424',
+    visited: '#2DBF8A',
+    // Globe
+    ocean: '#1A2744',
+    oceanEmissive: '#0F1C35',
+    globeUnvisited: '#2D3748',
+    globeHoverUnvisited: '#3D4A5C',
+    globeShadow: 'drop-shadow(0px 25px 50px rgba(0,0,0,0.4))',
+    // 2D map
+    mapUnvisited: '#2D3748',
+    mapHoverUnvisited: '#3D4A5C',
+    mapBorder: '#4A5568',
+    // Tooltip
+    tooltipBg: '#1E2533',
+    tooltipText: '#ffffff',
+    tooltipSub: '#94A3B8',
+    // UI
+    statBg: 'rgba(13,20,36,0.85)',
+  },
+  light: {
+    bg: '#F0FAF6',
+    visited: '#2DBF8A',
+    // Globe
+    ocean: '#B8CCE0',
+    oceanEmissive: '#8AAEC6',
+    globeUnvisited: '#DDEAF5',
+    globeHoverUnvisited: '#C8D0D6',
+    globeShadow: 'drop-shadow(0px 25px 50px rgba(100,140,180,0.4))',
+    // 2D map
+    mapUnvisited: '#E0E0E0',
+    mapHoverUnvisited: '#CCCCCC',
+    mapBorder: '#FFFFFF',
+    // Tooltip
+    tooltipBg: '#ffffff',
+    tooltipText: '#1a1a1a',
+    tooltipSub: '#6B7280',
+    // UI
+    statBg: 'rgba(255,255,255,0.92)',
+  },
 }
 
 const TOGGLE_H  = 50
@@ -80,10 +113,10 @@ export default function MapPage({ trips }: Props) {
     const canvas = document.createElement('canvas')
     canvas.width = 2; canvas.height = 1
     const ctx = canvas.getContext('2d')!
-    ctx.fillStyle = OCEAN_COLOR
+    ctx.fillStyle = colors.ocean
     ctx.fillRect(0, 0, 2, 1)
     setOceanDataUrl(canvas.toDataURL('image/png'))
-  }, [])
+  }, [colors.ocean])
 
   // ── Load world atlas ────────────────────────────────────────────────
   useEffect(() => {
@@ -105,12 +138,12 @@ export default function MapPage({ trips }: Props) {
     return () => ro.disconnect()
   }, [])
 
-  // ── Globe material (pearl shading) ──────────────────────────────────
+  // ── Globe material (shading varies by theme) ───────────────────────
   const applyGlobeMaterial = useCallback((g: any) => {
     const applyMat = (mat: any) => {
       mat.map = null
-      mat.color.set(OCEAN_COLOR)
-      mat.emissive.set(OCEAN_EMISSIVE)
+      mat.color.set(colors.ocean)
+      mat.emissive.set(colors.oceanEmissive)
       mat.emissiveIntensity = 0.5
       mat.needsUpdate = true
     }
@@ -123,7 +156,7 @@ export default function MapPage({ trips }: Props) {
       const sphereMesh = scene.children.find((c: any) => c.isMesh)
       if (sphereMesh) applyMat(sphereMesh.material)
     } catch (_) {}
-  }, [])
+  }, [colors.ocean, colors.oceanEmissive])
 
   const handleGlobeReady = useCallback(() => {
     const globe = globeRef.current
@@ -287,8 +320,8 @@ export default function MapPage({ trips }: Props) {
     const isVisited = visitedSlugs.has(slug)
     // String comparison handles world-atlas string IDs vs numeric hoveredId
     const isHovered = hoveredId !== null && String(feat.id) === String(hoveredId)
-    if (isHovered) return isVisited ? '#1EA876' : '#C8D0D6'
-    return isVisited ? colors.visited : colors.unvisited
+    if (isHovered) return isVisited ? '#1EA876' : colors.globeHoverUnvisited
+    return isVisited ? colors.visited : colors.globeUnvisited
   }, [visitedSlugs, colors, hoveredId])
 
   // Shared tooltip renderer — used by both globe and 2D map
@@ -302,7 +335,7 @@ export default function MapPage({ trips }: Props) {
       <div style={{
         position: 'fixed', left: x + 14, top: y - 40, zIndex: 300,
         pointerEvents: 'none',
-        background: '#ffffff',
+        background: colors.tooltipBg,
         borderRadius: '8px',
         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
         borderLeft: '4px solid #2DBF8A',
@@ -310,11 +343,11 @@ export default function MapPage({ trips }: Props) {
         fontFamily: 'Inter, sans-serif',
         whiteSpace: 'nowrap',
       }}>
-        <div style={{ color: '#1a1a1a', fontSize: '13px', fontWeight: 700 }}>
+        <div style={{ color: colors.tooltipText, fontSize: '13px', fontWeight: 700 }}>
           {flag} {name}
         </div>
         {stats && (
-          <div style={{ color: '#6B7280', fontSize: '11px', fontWeight: 400, marginTop: '3px' }}>
+          <div style={{ color: colors.tooltipSub, fontSize: '11px', fontWeight: 400, marginTop: '3px' }}>
             {t('map.tripCount', { count: stats.trips })} · {t('map.dayCount', { count: stats.days })}
           </div>
         )}
@@ -422,7 +455,7 @@ export default function MapPage({ trips }: Props) {
         {/* 3D Globe — always mounted to avoid WebGL teardown */}
         {countries.length > 0 ? (
           <div
-            style={{ filter: GLOBE_SHADOW }}
+            style={{ filter: colors.globeShadow }}
             onMouseMove={e => {
               globeMouseRef.current = { x: e.clientX, y: e.clientY }
               // Keep tooltip position in sync while moving over the same country
@@ -536,8 +569,8 @@ export default function MapPage({ trips }: Props) {
                               <Geography
                                 key={geo.rsmKey}
                                 geography={geo}
-                                fill={isVisited ? '#2DBF8A' : '#E0E0E0'}
-                                stroke="#FFFFFF"
+                                fill={isVisited ? '#2DBF8A' : colors.mapUnvisited}
+                                stroke={colors.mapBorder}
                                 strokeWidth={0.5}
                                 vectorEffect="non-scaling-stroke"
                                 onMouseEnter={e => {
@@ -549,7 +582,7 @@ export default function MapPage({ trips }: Props) {
                                 onMouseLeave={() => setFlatTooltip(null)}
                                 style={{
                                   default: { outline: 'none' },
-                                  hover: { fill: isVisited ? '#25A876' : '#CCCCCC', outline: 'none', cursor: 'pointer' },
+                                  hover: { fill: isVisited ? '#25A876' : colors.mapHoverUnvisited, outline: 'none', cursor: 'pointer' },
                                   pressed: { outline: 'none' },
                                 }}
                               />
