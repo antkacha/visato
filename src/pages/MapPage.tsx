@@ -342,9 +342,9 @@ export default function MapPage({ trips }: Props) {
   ]
 
   // ── Computed layout ─────────────────────────────────────────────────
-  const globeH      = Math.max(dims.h - 120 - TOGGLE_H, 200)
-  // Projection scale that fits the whole world inside dims.w × globeH
-  const flatScale   = dims.w > 0 ? Math.min(dims.w / 5.5, Math.max(globeH, 200) / 3.2) : 150
+  const globeH = Math.max(dims.h - 120 - TOGGLE_H, 200)
+  // 2D map: full container width, ~60% of that as height (Been-app aspect ratio)
+  const mapH   = Math.min(Math.round(dims.w * 0.6), globeH)
   const toggleBg    = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
   const inactiveClr = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)'
 
@@ -494,9 +494,9 @@ export default function MapPage({ trips }: Props) {
                 {!!topoData && (
                   <ComposableMap
                     width={dims.w}
-                    height={globeH}
-                    projectionConfig={{ scale: flatScale }}
-                    style={{ display: 'block', width: '100%', height: '100%', background: 'transparent' }}
+                    height={mapH}
+                    projectionConfig={{ scale: 155, center: [0, 10] }}
+                    style={{ display: 'block', width: '100%', height: `${mapH}px`, background: 'transparent' }}
                   >
                     <g
                       transform={`translate(${panZoom.x},${panZoom.y}) scale(${panZoom.scale})`}
@@ -504,7 +504,10 @@ export default function MapPage({ trips }: Props) {
                     >
                       <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
                         {({ geographies }) =>
-                          geographies.map(geo => {
+                          geographies
+                            // cut off Antarctica (ISO 010)
+                            .filter(geo => String(geo.id) !== '10')
+                            .map(geo => {
                             const slug = ISO_TO_SLUG[Number(geo.id)]
                             const isVisited = !!slug && visitedSlugs.has(slug)
                             return (
@@ -513,7 +516,7 @@ export default function MapPage({ trips }: Props) {
                                 geography={geo}
                                 fill={isVisited ? '#2DBF8A' : '#E0E0E0'}
                                 stroke="#FFFFFF"
-                                strokeWidth={0.3}
+                                strokeWidth={0.5}
                                 vectorEffect="non-scaling-stroke"
                                 onMouseEnter={e => {
                                   if (slug) setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
