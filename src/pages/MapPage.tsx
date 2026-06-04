@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import Globe from 'react-globe.gl'
 import type { GlobeMethods } from 'react-globe.gl'
-import { ComposableMap, Geographies, Geography } from 'react-simple-maps'
+import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps'
 import { AnimatePresence, motion } from 'framer-motion'
 import { feature } from 'topojson-client'
 import type { Topology, GeometryCollection } from 'topojson-specification'
@@ -26,35 +26,35 @@ interface GeoFeature {
 
 type ViewMode = 'globe' | 'flat'
 
+// Monochrome gray globe with mint highlights
 const THEME = {
   dark: {
     bg: '#0c1424',
-    ocean: '#B8CDE0',
+    ocean: '#9BA8B0',
     visited: '#2DBF8A',
-    unvisited: '#E8EFF5',
-    border: '#FFFFFF',
+    unvisited: '#C8D0D6',
     statBg: 'rgba(13,20,36,0.85)',
   },
   light: {
     bg: '#F0FAF6',
-    ocean: '#B8CDE0',
+    ocean: '#9BA8B0',
     visited: '#2DBF8A',
-    unvisited: '#E8EFF5',
-    border: '#FFFFFF',
+    unvisited: '#C8D0D6',
     statBg: 'rgba(255,255,255,0.92)',
   },
 }
 
 const TOGGLE_H = 50
+const MAP_MIN_ZOOM = 1
+const MAP_MAX_ZOOM = 20
 
-// Framer Motion variants for the view panels
 const viewVariants = {
-  globeInitial:  { opacity: 0, scale: 0.90 },
-  globeAnimate:  { opacity: 1, scale: 1 },
-  globeExit:     { opacity: 0, scale: 0.90 },
-  flatInitial:   { opacity: 0, scale: 0.96 },
-  flatAnimate:   { opacity: 1, scale: 1 },
-  flatExit:      { opacity: 0, scale: 0.96 },
+  globeInitial: { opacity: 0, scale: 0.90 },
+  globeAnimate: { opacity: 1, scale: 1 },
+  globeExit:    { opacity: 0, scale: 0.90 },
+  flatInitial:  { opacity: 0, scale: 0.96 },
+  flatAnimate:  { opacity: 1, scale: 1 },
+  flatExit:     { opacity: 0, scale: 0.96 },
 }
 
 const panelTransition = { duration: 0.4, ease: 'easeInOut' as const }
@@ -78,8 +78,13 @@ export default function MapPage({ trips }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>('globe')
   const [flatTooltip, setFlatTooltip] = useState<{ x: number; y: number; slug: string } | null>(null)
 
-  // Solid-color canvas texture for the ocean — the only reliable way to override the
-  // built-in satellite texture in three-globe without leaving black squares.
+  // 2D map zoom/pan state — default centered on Europe
+  const [mapZoom, setMapZoom] = useState(1)
+  const [mapCenter, setMapCenter] = useState<[number, number]>([15, 50])
+  const [isDragging, setIsDragging] = useState(false)
+
+  // Solid-color canvas texture for the ocean — the only reliable way to override
+  // three-globe's built-in satellite texture without leaving black squares.
   const [oceanDataUrl, setOceanDataUrl] = useState('')
   useEffect(() => {
     const canvas = document.createElement('canvas')
@@ -221,7 +226,7 @@ export default function MapPage({ trips }: Props) {
   )
 
   const renderFlatTooltip = () => {
-    if (!flatTooltip) return null
+    if (!flatTooltip || isDragging) return null
     const { x, y, slug } = flatTooltip
     const name = t(`countries.${slug}`, { defaultValue: slug })
     const flag = COUNTRY_FLAGS[slug] ?? ''
@@ -285,6 +290,27 @@ export default function MapPage({ trips }: Props) {
   const toggleBg = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
   const inactiveColor = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)'
 
+  // Zoom button style shared between + and −
+  const zoomBtnStyle: React.CSSProperties = {
+    width: '34px',
+    height: '34px',
+    borderRadius: '8px',
+    border: 'none',
+    background: theme === 'dark' ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.92)',
+    color: theme === 'dark' ? '#ffffff' : '#374151',
+    fontSize: '20px',
+    lineHeight: '1',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+    fontFamily: 'Inter, system-ui, sans-serif',
+    fontWeight: 400,
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+  }
+
   return (
     <div
       ref={containerRef}
@@ -343,9 +369,10 @@ export default function MapPage({ trips }: Props) {
         </div>
       </div>
 
-      {/* Map area — AnimatePresence handles crossfade between views */}
+      {/* Map area */}
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
         <AnimatePresence>
+          {/* ── 3D Globe ───────────────────────────────────────────── */}
           {viewMode === 'globe' && (
             <motion.div
               key="globe"
@@ -356,8 +383,7 @@ export default function MapPage({ trips }: Props) {
               style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}
             >
               {countries.length > 0 ? (
-                // CSS drop-shadow on the wrapper gives the globe a soft floating shadow
-                <div style={{ filter: 'drop-shadow(0px 20px 40px rgba(0,0,0,0.15))' }}>
+                <div style={{ filter: 'drop-shadow(0px 30px 60px rgba(0,0,0,0.25))' }}>
                   <Globe
                     ref={globeRef}
                     width={dims.w}
@@ -389,12 +415,9 @@ export default function MapPage({ trips }: Props) {
                   position: 'absolute', bottom: '1rem', left: '50%',
                   transform: 'translateX(-50%)',
                   background: colors.statBg,
-                  padding: '0.5rem 1rem',
-                  borderRadius: '2rem',
-                  fontSize: '0.8125rem',
+                  padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.8125rem',
                   color: theme === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)',
-                  backdropFilter: 'blur(8px)',
-                  border: `1px solid rgba(255,255,255,0.12)`,
+                  backdropFilter: 'blur(8px)', border: `1px solid rgba(255,255,255,0.12)`,
                   whiteSpace: 'nowrap',
                 }}>
                   {t('map.noTrips')}
@@ -403,6 +426,7 @@ export default function MapPage({ trips }: Props) {
             </motion.div>
           )}
 
+          {/* ── 2D Flat map ────────────────────────────────────────── */}
           {viewMode === 'flat' && (
             <motion.div
               key="flat"
@@ -415,44 +439,57 @@ export default function MapPage({ trips }: Props) {
               {topoData ? (
                 <ComposableMap
                   projection="geoNaturalEarth1"
-                  projectionConfig={{ scale: 400, center: [15, 50] }}
+                  projectionConfig={{ scale: 400 }}
                   style={{ width: '100%', height: '100%' }}
                 >
-                  <Geographies geography={topoData}>
-                    {({ geographies }) =>
-                      geographies.map((geo) => {
-                        const slug = ISO_TO_SLUG[Number(geo.id)]
-                        const isVisited = !!slug && visitedSlugs.has(slug)
-                        return (
-                          <Geography
-                            key={geo.rsmKey}
-                            geography={geo}
-                            fill={isVisited ? '#2DBF8A' : colors.unvisited}
-                            stroke="#FFFFFF"
-                            strokeWidth={0.3}
-                            onMouseEnter={(e) => {
-                              if (!slug) return
-                              setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
-                            }}
-                            onMouseMove={(e) => {
-                              if (!slug) return
-                              setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
-                            }}
-                            onMouseLeave={() => setFlatTooltip(null)}
-                            style={{
-                              default: { outline: 'none' },
-                              hover: {
-                                fill: isVisited ? '#25A876' : (theme === 'dark' ? '#B0C0CE' : '#D4D4D4'),
-                                outline: 'none',
-                                cursor: 'pointer',
-                              },
-                              pressed: { outline: 'none' },
-                            }}
-                          />
-                        )
-                      })
-                    }
-                  </Geographies>
+                  <ZoomableGroup
+                    zoom={mapZoom}
+                    center={mapCenter}
+                    minZoom={MAP_MIN_ZOOM}
+                    maxZoom={MAP_MAX_ZOOM}
+                    onMove={() => { setIsDragging(true); setFlatTooltip(null) }}
+                    onMoveEnd={({ coordinates, zoom }) => {
+                      setMapCenter(coordinates)
+                      setMapZoom(zoom)
+                      setIsDragging(false)
+                    }}
+                  >
+                    <Geographies geography={topoData}>
+                      {({ geographies }) =>
+                        geographies.map((geo) => {
+                          const slug = ISO_TO_SLUG[Number(geo.id)]
+                          const isVisited = !!slug && visitedSlugs.has(slug)
+                          return (
+                            <Geography
+                              key={geo.rsmKey}
+                              geography={geo}
+                              fill={isVisited ? '#2DBF8A' : colors.unvisited}
+                              stroke="#FFFFFF"
+                              strokeWidth={0.3 / mapZoom}
+                              onMouseEnter={(e) => {
+                                if (!slug || isDragging) return
+                                setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
+                              }}
+                              onMouseMove={(e) => {
+                                if (!slug || isDragging) return
+                                setFlatTooltip({ x: e.clientX, y: e.clientY, slug })
+                              }}
+                              onMouseLeave={() => setFlatTooltip(null)}
+                              style={{
+                                default: { outline: 'none' },
+                                hover: {
+                                  fill: isVisited ? '#25A876' : '#B5BEC5',
+                                  outline: 'none',
+                                  cursor: isDragging ? 'grabbing' : 'pointer',
+                                },
+                                pressed: { outline: 'none', cursor: 'grabbing' },
+                              }}
+                            />
+                          )
+                        })
+                      }
+                    </Geographies>
+                  </ZoomableGroup>
                 </ComposableMap>
               ) : (
                 <div style={{
@@ -464,17 +501,38 @@ export default function MapPage({ trips }: Props) {
                   Loading map…
                 </div>
               )}
+
+              {/* Zoom controls */}
+              {!!topoData && (
+                <div style={{
+                  position: 'absolute', bottom: '16px', right: '16px',
+                  display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 10,
+                }}>
+                  <button
+                    style={zoomBtnStyle}
+                    onClick={() => setMapZoom(z => Math.min(z * 2, MAP_MAX_ZOOM))}
+                    title="Zoom in"
+                  >
+                    +
+                  </button>
+                  <button
+                    style={zoomBtnStyle}
+                    onClick={() => setMapZoom(z => Math.max(z / 2, MAP_MIN_ZOOM))}
+                    title="Zoom out"
+                  >
+                    −
+                  </button>
+                </div>
+              )}
+
               {trips.length === 0 && !!topoData && (
                 <div style={{
                   position: 'absolute', bottom: '1rem', left: '50%',
                   transform: 'translateX(-50%)',
                   background: colors.statBg,
-                  padding: '0.5rem 1rem',
-                  borderRadius: '2rem',
-                  fontSize: '0.8125rem',
+                  padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.8125rem',
                   color: theme === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)',
-                  backdropFilter: 'blur(8px)',
-                  border: `1px solid rgba(255,255,255,0.12)`,
+                  backdropFilter: 'blur(8px)', border: `1px solid rgba(255,255,255,0.12)`,
                   whiteSpace: 'nowrap',
                 }}>
                   {t('map.noTrips')}

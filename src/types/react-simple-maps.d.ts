@@ -11,6 +11,21 @@ declare module 'react-simple-maps' {
     children?: ReactNode
   }
 
+  export interface ZoomableGroupProps {
+    zoom?: number
+    minZoom?: number
+    maxZoom?: number
+    center?: [number, number]
+    translateExtent?: [[number, number], [number, number]]
+    onMoveStart?: (params: { coordinates: [number, number]; zoom: number }, event: unknown) => void
+    onMove?: (params: { x: number; y: number; zoom: number }, event: unknown) => void
+    onMoveEnd?: (params: { coordinates: [number, number]; zoom: number }, event: unknown) => void
+    filterZoomEvent?: (event: Event) => boolean
+    className?: string
+    children?: ReactNode
+    style?: React.CSSProperties
+  }
+
   export interface GeographiesProps {
     geography: unknown
     children: (ctx: { geographies: GeoEntry[] }) => ReactNode
@@ -46,6 +61,7 @@ declare module 'react-simple-maps' {
   }
 
   export const ComposableMap: React.FC<ComposableMapProps>
+  export const ZoomableGroup: React.FC<ZoomableGroupProps>
   export const Geographies: React.FC<GeographiesProps>
   export const Geography: React.FC<GeographyProps>
   export const Sphere: React.FC<SphereProps>
