@@ -10,6 +10,7 @@ export interface UserProfileData {
   displayName: string
   homeCountry: string
   bio: string
+  photoUrl?: string
 }
 
 export function loadProfile(): UserProfileData {
