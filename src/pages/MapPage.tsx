@@ -29,6 +29,32 @@ interface GeoFeature {
 
 type ViewMode = 'globe' | 'map'
 
+// Crimea displayed as Ukrainian territory (consistent with international law).
+// Hardcoded simplified polygon overlaid on top of Russia's world-atlas feature.
+const CRIMEA_GLOBE_FEATURE: GeoFeature = {
+  type: 'Feature',
+  id: 804, // Ukraine's ISO code — getCapColor/geoFeatureSlug treats it as Ukraine
+  properties: { name: 'Ukraine' },
+  geometry: {
+    type: 'Polygon',
+    coordinates: [[
+      [32.49, 45.31], [32.50, 44.90], [33.18, 44.38], [33.72, 44.32],
+      [34.22, 44.54], [34.87, 44.52], [35.17, 44.53], [35.53, 44.55],
+      [36.10, 44.76], [36.62, 45.20], [36.63, 45.40], [36.41, 45.67],
+      [35.10, 45.89], [34.06, 46.06], [33.58, 46.10], [33.05, 45.93],
+      [32.62, 45.71], [32.49, 45.31],
+    ]],
+  },
+}
+
+const CRIMEA_GEO_JSON = {
+  type: 'Feature',
+  id: 'crimea',
+  rsmKey: 'crimea-overlay',
+  properties: { name: 'Ukraine' },
+  geometry: CRIMEA_GLOBE_FEATURE.geometry,
+}
+
 const THEME = {
   dark: {
     bg: '#0c1424',
@@ -127,7 +153,9 @@ export default function MapPage({ trips, user }: Props) {
     import('world-atlas/countries-110m.json').then((mod) => {
       const topo = mod.default as unknown as Topology<{ countries: GeometryCollection }>
       const geo  = feature(topo, topo.objects.countries)
-      setCountries((geo as unknown as { features: GeoFeature[] }).features)
+      const features = (geo as unknown as { features: GeoFeature[] }).features
+      // Crimea appended last so it renders on top of Russia's polygon
+      setCountries([...features, CRIMEA_GLOBE_FEATURE])
       setTopoData(mod.default)
     })
   }, [])
@@ -630,6 +658,25 @@ export default function MapPage({ trips, user }: Props) {
                           })
                         }
                       </Geographies>
+
+                      {/* Crimea overlay — shown as Ukrainian territory */}
+                      <Geography
+                        key="crimea-overlay"
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        geography={CRIMEA_GEO_JSON as any}
+                        fill={visitedSlugs.has('ukraine') ? '#2DBF8A' : colors.mapUnvisited}
+                        stroke={colors.mapBorder}
+                        strokeWidth={0.5}
+                        vectorEffect="non-scaling-stroke"
+                        onMouseEnter={e => setFlatTooltip({ x: e.clientX, y: e.clientY, slug: 'ukraine' })}
+                        onMouseMove={e => setFlatTooltip({ x: e.clientX, y: e.clientY, slug: 'ukraine' })}
+                        onMouseLeave={() => setFlatTooltip(null)}
+                        style={{
+                          default: { outline: 'none' },
+                          hover: { fill: visitedSlugs.has('ukraine') ? '#25A876' : colors.mapHoverUnvisited, outline: 'none', cursor: 'pointer' },
+                          pressed: { outline: 'none' },
+                        }}
+                      />
                     </g>
                   </ComposableMap>
                 )}
