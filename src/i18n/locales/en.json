@@ -381,6 +381,10 @@
   "share": {
     "button": "Share",
     "title": "Share my map",
+    "format": "Format",
+    "language": "Language",
+    "generate": "Generate",
+    "back": "Back",
     "generating": "Generating image…",
     "download": "Download PNG",
     "copy": "Copy image",
