@@ -7,12 +7,13 @@ export interface Country {
 }
 
 export const ALL_COUNTRIES: Country[] = [
-  // ── Schengen (29) ────────────────────────────────────────────────────────
+  // ── Schengen (30, Cyprus joined 2024) ───────────────────────────────────
   { slug: 'austria',         flag: '🇦🇹', zone: 'schengen' },
   { slug: 'belgium',         flag: '🇧🇪', zone: 'schengen' },
   { slug: 'bulgaria',        flag: '🇧🇬', zone: 'schengen' },
   { slug: 'croatia',         flag: '🇭🇷', zone: 'schengen' },
   { slug: 'czech_republic',  flag: '🇨🇿', zone: 'schengen' },
+  { slug: 'cyprus',          flag: '🇨🇾', zone: 'schengen' },
   { slug: 'denmark',         flag: '🇩🇰', zone: 'schengen' },
   { slug: 'estonia',         flag: '🇪🇪', zone: 'schengen' },
   { slug: 'finland',         flag: '🇫🇮', zone: 'schengen' },
@@ -51,6 +52,8 @@ export const ALL_COUNTRIES: Country[] = [
   { slug: 'andorra',                flag: '🇦🇩', zone: 'other' },
   { slug: 'belarus',                flag: '🇧🇾', zone: 'other' },
   { slug: 'bosnia_and_herzegovina', flag: '🇧🇦', zone: 'other' },
+  { slug: 'greenland',              flag: '🇬🇱', zone: 'other' },
+  { slug: 'ireland',                flag: '🇮🇪', zone: 'other' },
   { slug: 'kosovo',                 flag: '🇽🇰', zone: 'other' },
   { slug: 'moldova',                flag: '🇲🇩', zone: 'other' },
   { slug: 'monaco',                 flag: '🇲🇨', zone: 'other' },

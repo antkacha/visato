@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next'
 import { useTheme } from '../hooks/useTheme'
 import type { TripEntry } from '../types'
 import { COUNTRY_FLAGS } from '../constants/countries'
-import { ISO_TO_SLUG } from '../constants/countryIsoMap'
+import { geoFeatureSlug } from '../constants/countryIsoMap'
 import { differenceInDays, parseISO } from 'date-fns'
 import { today } from '../utils/dateUtils'
 import type { User } from '@supabase/supabase-js'
@@ -321,15 +321,15 @@ export default function MapPage({ trips, user }: Props) {
     if (!countries.length || !trips.length) return
     console.log('[Map] Trip slugs:', [...visitedSlugs])
     const matched = countries
-      .map(f => ({ id: String(f.id), slug: ISO_TO_SLUG[Number(f.id)] }))
+      .map(f => ({ id: String(f.id), slug: geoFeatureSlug(f.id, f.properties) }))
       .filter(({ slug }) => slug && visitedSlugs.has(slug))
     console.log('[Map] Matched features:', matched)
   }, [countries, trips.length, visitedSlugs])
 
   const getCapColor = useCallback((f: object) => {
     const feat = f as GeoFeature
-    const slug = ISO_TO_SLUG[Number(feat.id)]
-    const isVisited = visitedSlugs.has(slug)
+    const slug = geoFeatureSlug(feat.id, feat.properties)
+    const isVisited = !!slug && visitedSlugs.has(slug)
     // String comparison handles world-atlas string IDs vs numeric hoveredId
     const isHovered = hoveredId !== null && String(feat.id) === String(hoveredId)
     if (isHovered) return isVisited ? '#1EA876' : colors.globeHoverUnvisited
@@ -519,7 +519,7 @@ export default function MapPage({ trips, user }: Props) {
                 const feat = f as GeoFeature | null
                 setHoveredId(feat ? feat.id : null)
                 if (feat) {
-                  const slug = ISO_TO_SLUG[Number(feat.id)]
+                  const slug = geoFeatureSlug(feat.id, feat.properties)
                   setGlobeTooltip(slug ? { ...globeMouseRef.current, slug } : null)
                 } else {
                   setGlobeTooltip(null)
@@ -603,7 +603,7 @@ export default function MapPage({ trips, user }: Props) {
                             // cut off Antarctica (ISO 010)
                             .filter(geo => String(geo.id) !== '10')
                             .map(geo => {
-                            const slug = ISO_TO_SLUG[Number(geo.id)]
+                            const slug = geoFeatureSlug(geo.id, geo.properties as Record<string, unknown>)
                             const isVisited = !!slug && visitedSlugs.has(slug)
                             return (
                               <Geography

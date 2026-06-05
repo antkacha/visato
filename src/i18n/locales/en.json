@@ -333,7 +333,10 @@
     "solomon_islands": "Solomon Islands",
     "tonga": "Tonga",
     "tuvalu": "Tuvalu",
-    "vanuatu": "Vanuatu"
+    "vanuatu": "Vanuatu",
+    "ireland": "Ireland",
+    "cyprus": "Cyprus",
+    "greenland": "Greenland"
   },
   "map": {
     "navLink": "My Map",

@@ -1,7 +1,8 @@
 // slug → ISO 3166-1 numeric code (matches world-atlas countries-110m.json feature ids)
 export const SLUG_TO_ISO: Record<string, number> = {
-  // Schengen
+  // Schengen (Cyprus joined 2024)
   austria: 40, belgium: 56, bulgaria: 100, croatia: 191, czech_republic: 203,
+  cyprus: 196,
   denmark: 208, estonia: 233, finland: 246, france: 250, germany: 276,
   greece: 300, hungary: 348, iceland: 352, italy: 380, latvia: 428,
   liechtenstein: 438, lithuania: 440, luxembourg: 442, malta: 470,
@@ -12,6 +13,7 @@ export const SLUG_TO_ISO: Record<string, number> = {
   united_arab_emirates: 784, thailand: 764, georgia: 268,
   // Europe (non-Schengen)
   albania: 8, andorra: 20, belarus: 112, bosnia_and_herzegovina: 70,
+  greenland: 304, ireland: 372,
   kosovo: 383, moldova: 498, monaco: 492, montenegro: 499,
   north_macedonia: 807, russia: 643, san_marino: 674, serbia: 688,
   ukraine: 804, vatican: 336,
@@ -61,3 +63,25 @@ export const SLUG_TO_ISO: Record<string, number> = {
 export const ISO_TO_SLUG: Record<number, string> = Object.fromEntries(
   Object.entries(SLUG_TO_ISO).map(([slug, iso]) => [iso, slug])
 )
+
+// Name overrides for world-atlas features that have id=-99 (no standard ISO code)
+// "N. Cyprus" is merged visually with "cyprus" so both polygons get the same colour/tooltip
+const NAME_OVERRIDES: Record<string, string> = {
+  'Kosovo':    'kosovo',
+  'N. Cyprus': 'cyprus',
+}
+
+/**
+ * Resolve a world-atlas GeoJSON feature to an app country slug.
+ * Primary: ISO numeric ID via ISO_TO_SLUG.
+ * Fallback: properties.name for features with id=-99 (Kosovo, N. Cyprus, etc.).
+ */
+export function geoFeatureSlug(
+  id: string | number,
+  properties?: Record<string, unknown>,
+): string | undefined {
+  const byIso = ISO_TO_SLUG[Number(id)]
+  if (byIso) return byIso
+  const name = properties?.name as string | undefined
+  return name ? NAME_OVERRIDES[name] : undefined
+}

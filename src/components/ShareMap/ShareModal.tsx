@@ -5,7 +5,7 @@ import { ComposableMap, Geographies, Geography } from 'react-simple-maps'
 import html2canvas from 'html2canvas'
 import type { User } from '@supabase/supabase-js'
 import type { TripEntry } from '../../types'
-import { ISO_TO_SLUG } from '../../constants/countryIsoMap'
+import { geoFeatureSlug } from '../../constants/countryIsoMap'
 import { differenceInDays, parseISO } from 'date-fns'
 import { today } from '../../utils/dateUtils'
 
@@ -156,7 +156,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
                 geographies
                   .filter((geo) => String(geo.id) !== '10') // Antarctica
                   .map((geo) => {
-                    const slug = ISO_TO_SLUG[Number(geo.id)]
+                    const slug = geoFeatureSlug(geo.id, geo.properties as Record<string, unknown>)
                     const isVisited = !!slug && visitedSlugs.has(slug)
                     return (
                       <Geography
