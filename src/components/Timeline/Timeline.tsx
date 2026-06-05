@@ -49,7 +49,7 @@ export default function Timeline({ trips }: Props) {
     return exit >= format(rangeStart, 'yyyy-MM-dd') && trip.entryDate <= format(rangeEnd, 'yyyy-MM-dd')
   })
 
-  // Assign rows: only separate trips that overlap by 2+ days
+  // Assign rows: separate trips that share even 1 day (including same exit/entry date = transit)
   const rowMap: Record<string, number> = {}
   const rowBuckets: Array<Array<{ entry: string; exit: string }>> = []
   for (const trip of [...visibleTrips].sort((a, b) => a.entryDate.localeCompare(b.entryDate))) {
@@ -59,7 +59,7 @@ export default function Timeline({ trips }: Props) {
       const conflict = rowBuckets[r].some(({ entry, exit: bExit }) => {
         const overlapStart = trip.entryDate > entry ? trip.entryDate : entry
         const overlapEnd = exit < bExit ? exit : bExit
-        return overlapEnd > overlapStart // 2+ shared days
+        return overlapEnd >= overlapStart // 1+ shared days (>= catches the 1-day transit case)
       })
       if (!conflict) {
         rowBuckets[r].push({ entry: trip.entryDate, exit })
