@@ -29,11 +29,11 @@ interface GeoFeature {
 
 type ViewMode = 'globe' | 'map'
 
-// Crimea displayed as Ukrainian territory (consistent with international law).
-// Hardcoded simplified polygon overlaid on top of Russia's world-atlas feature.
-const CRIMEA_GLOBE_FEATURE: GeoFeature = {
+// Hardcoded Crimea polygon for the 2D flat-map overlay (renders on top of Russia)
+const CRIMEA_GEO_JSON = {
   type: 'Feature',
-  id: 804, // Ukraine's ISO code — getCapColor/geoFeatureSlug treats it as Ukraine
+  id: 'crimea',
+  rsmKey: 'crimea-overlay',
   properties: { name: 'Ukraine' },
   geometry: {
     type: 'Polygon',
@@ -47,12 +47,69 @@ const CRIMEA_GLOBE_FEATURE: GeoFeature = {
   },
 }
 
-const CRIMEA_GEO_JSON = {
-  type: 'Feature',
-  id: 'crimea',
-  rsmKey: 'crimea-overlay',
-  properties: { name: 'Ukraine' },
-  geometry: CRIMEA_GLOBE_FEATURE.geometry,
+// Return true if the centroid of a polygon ring falls within the given lon/lat bbox
+function polyNearBbox(
+  coords: number[][][],
+  minLon: number, maxLon: number, minLat: number, maxLat: number,
+): boolean {
+  const outer = coords[0]
+  let sumLon = 0, sumLat = 0
+  for (const [lon, lat] of outer) { sumLon += lon; sumLat += lat }
+  const cx = sumLon / outer.length, cy = sumLat / outer.length
+  return cx >= minLon && cx <= maxLon && cy >= minLat && cy <= maxLat
+}
+
+/**
+ * Post-process world-atlas features:
+ * - Russia (ISO 643): extract any polygon whose centroid falls in Crimea (33-36°E, 44-46°N)
+ *   and re-emit it as a Ukraine (ISO 804) feature so it renders with Ukraine's colour.
+ * - Any feature whose polygons are centred near Cyprus (32-34°E, 34-36°N) gets
+ *   re-labelled as Cyprus (ISO 196) so N.Cyprus / ESBA areas share the same colour/tooltip.
+ */
+function processWorldFeatures(features: GeoFeature[]): GeoFeature[] {
+  const out: GeoFeature[] = []
+
+  for (const feat of features) {
+    const numId = Number(feat.id)
+    const geom = feat.geometry as { type: string; coordinates: number[][][][] | number[][][] } | null
+    if (!geom) { out.push(feat); continue }
+
+    const polys: number[][][][] =
+      geom.type === 'MultiPolygon'
+        ? (geom.coordinates as number[][][][])
+        : geom.type === 'Polygon'
+          ? [(geom.coordinates as number[][][])]
+          : []
+
+    if (numId === 643) {
+      // Russia — split off Crimea polygons
+      const mainPolys  = polys.filter(p => !polyNearBbox(p, 33, 36, 44, 46))
+      const crimeaPolys = polys.filter(p =>  polyNearBbox(p, 33, 36, 44, 46))
+
+      out.push({ ...feat, geometry: { type: 'MultiPolygon', coordinates: mainPolys } })
+
+      if (crimeaPolys.length > 0) {
+        out.push({
+          type: 'Feature',
+          id: 804,
+          properties: { name: 'Ukraine' },
+          geometry: { type: 'MultiPolygon', coordinates: crimeaPolys },
+        })
+      }
+      continue
+    }
+
+    // Re-label any feature whose polygons cluster around the Cyprus area
+    const nearCyprus = polys.some(p => polyNearBbox(p, 32, 34, 34, 36))
+    if (nearCyprus) {
+      out.push({ ...feat, id: 196, properties: { ...feat.properties, name: 'Cyprus' } })
+      continue
+    }
+
+    out.push(feat)
+  }
+
+  return out
 }
 
 const THEME = {
@@ -150,14 +207,15 @@ export default function MapPage({ trips, user }: Props) {
 
   // ── Load world atlas ────────────────────────────────────────────────
   useEffect(() => {
-    import('world-atlas/countries-110m.json').then((mod) => {
-      const topo = mod.default as unknown as Topology<{ countries: GeometryCollection }>
-      const geo  = feature(topo, topo.objects.countries)
-      const features = (geo as unknown as { features: GeoFeature[] }).features
-      // Crimea appended last so it renders on top of Russia's polygon
-      setCountries([...features, CRIMEA_GLOBE_FEATURE])
-      setTopoData(mod.default)
-    })
+    fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+      .then(r => r.json())
+      .then((topo: unknown) => {
+        const typed = topo as Topology<{ countries: GeometryCollection }>
+        const geo   = feature(typed, typed.objects.countries)
+        const features = (geo as unknown as { features: GeoFeature[] }).features
+        setCountries(processWorldFeatures(features))
+        setTopoData(topo)
+      })
   }, [])
 
   // ── Container resize observer ───────────────────────────────────────
