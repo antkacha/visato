@@ -289,12 +289,13 @@ export default function TripForm({ open, trip, existingTrips, initialDates, onSa
         )
       : null
 
-  // Non-blocking warning: 2+ day overlap with any other trip
-  const overlapWarning = !!(form.entryDate && form.exitDate && form.entryDate <= form.exitDate &&
+  // Hard error: overlap of 2+ days with any other trip (1-day shared transit is allowed)
+  const overlapError = !!(form.entryDate && form.exitDate && form.entryDate <= form.exitDate &&
     otherTrips.some((other) => {
       const otherExit = other.exitDate === 'ongoing' ? todayISO : other.exitDate
       const overlapStart = form.entryDate > other.entryDate ? form.entryDate : other.entryDate
       const overlapEnd = form.exitDate < otherExit ? form.exitDate : otherExit
+      // overlapEnd > overlapStart means ≥2 days overlap; overlapEnd === overlapStart means 1-day transit (allowed)
       return overlapEnd > overlapStart
     })
   )
@@ -439,10 +440,10 @@ export default function TripForm({ open, trip, existingTrips, initialDates, onSa
               {errors.exitDate && <p style={errorStyle}>{errors.exitDate}</p>}
             </div>
 
-            {/* Overlap warning — non-blocking */}
-            {overlapWarning && (
-              <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(245,158,11,0.12)', border: '1px solid var(--color-warning)', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-warning)' }}>
-                {t('form.warningOverlap')}
+            {/* Overlap error — blocks saving */}
+            {overlapError && (
+              <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(239,68,68,0.08)', border: '1px solid var(--color-danger)', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-danger)' }}>
+                {t('form.errorOverlap')}
               </div>
             )}
 
@@ -492,7 +493,8 @@ export default function TripForm({ open, trip, existingTrips, initialDates, onSa
               </button>
               <button
                 type="submit"
-                style={{ flex: 1, padding: '0.5rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 600, background: 'var(--color-accent)', border: 'none', color: '#fff', cursor: 'pointer' }}
+                disabled={overlapError}
+                style={{ flex: 1, padding: '0.5rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 600, background: 'var(--color-accent)', border: 'none', color: '#fff', cursor: overlapError ? 'not-allowed' : 'pointer', opacity: overlapError ? 0.45 : 1 }}
               >
                 {t('form.save')}
               </button>

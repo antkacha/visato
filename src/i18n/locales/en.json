@@ -64,7 +64,7 @@
     },
     "warning": "⚠ Exceeds limit on {{date}} (max {{max}} safe days)",
     "warningLong": "⚠ This trip exceeds 90 days — it will be flagged as a violation period",
-    "warningOverlap": "⚠ This trip overlaps with another trip. You can still save it."
+    "errorOverlap": "This trip overlaps with another trip by more than 1 day. Please adjust the dates."
   },
   "checker": {
     "title": "Trip checker",
