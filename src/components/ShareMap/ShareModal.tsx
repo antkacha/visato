@@ -36,11 +36,53 @@ const FORMATS: Record<FormatKey, { w: number; h: number }> = {
 const FORMAT_KEYS: FormatKey[] = ['16:9', '1:1', '4:5', '9:16']
 const CARD_LANGS: CardLang[]   = ['en', 'uk', 'ru']
 
-// Card-text strings independent of app i18n language
-const CARD_STR: Record<CardLang, { countries: string; trips: string; days: string; tagline: string }> = {
-  en: { countries: 'Countries', trips: 'Trips', days: 'Days abroad',       tagline: 'My travel map'         },
-  uk: { countries: 'Країни',    trips: 'Поїздки', days: 'Днів за кордоном', tagline: 'Моя карта подорожей'  },
-  ru: { countries: 'Страны',    trips: 'Поездки', days: 'Дней за рубежом',  tagline: 'Моя карта путешествий' },
+// ── Dark card design tokens ──────────────────────────────────────────
+const C = {
+  bg:        '#0D1F1A',
+  mapBg:     '#1A2E28',
+  unvisited: '#2D3D38',
+  visited:   '#2DBF8A',
+  mint:      '#2DBF8A',
+  white:     '#FFFFFF',
+  gray:      '#9CA3AF',
+  dimGray:   '#6B7280',
+}
+
+const LOCALES: Record<CardLang, string> = { en: 'en-US', uk: 'uk-UA', ru: 'ru-RU' }
+
+// Strings are independent of the app's current language
+const CARD_STR: Record<CardLang, {
+  headlinePre: string
+  headlinePost: string
+  countries: string
+  trips: string
+  days: string
+  of195: string
+}> = {
+  en: {
+    headlinePre:  "I've visited ",
+    headlinePost: ' countries',
+    countries: 'Countries',
+    trips: 'Trips',
+    days: 'Days abroad',
+    of195: '/ 195',
+  },
+  uk: {
+    headlinePre:  'Я відвідала ',
+    headlinePost: ' країн',
+    countries: 'Країни',
+    trips: 'Поїздки',
+    days: 'Днів за кордоном',
+    of195: '/ 195',
+  },
+  ru: {
+    headlinePre:  'Я посетила ',
+    headlinePost: ' стран',
+    countries: 'Страны',
+    trips: 'Поездки',
+    days: 'Дней за рубежом',
+    of195: '/ 195',
+  },
 }
 
 export default function ShareModal({ isOpen, onClose, trips, topoData, user }: Props) {
@@ -59,7 +101,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   const totalDays       = useMemo(() => trips.reduce((s, t) => s + tripDays(t), 0), [trips])
   const displayName     = user?.user_metadata?.full_name as string | undefined
 
-  // On open: sync card language to current app language, reset to settings stage
+  // On open: sync card language to app language, reset to settings
   useEffect(() => {
     if (!isOpen) return
     const lng = (i18n.language?.slice(0, 2) ?? 'en') as CardLang
@@ -72,14 +114,13 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   const generate = useCallback(async () => {
     if (!cardRef.current) return
     setStage('generating')
-    // Give React + react-simple-maps SVG time to fully paint at the selected format
     await new Promise(r => setTimeout(r, 800))
     const { w, h } = FORMATS[format]
     try {
       const canvas = await html2canvas(cardRef.current, {
         width: w, height: h, scale: 1,
         useCORS: true, allowTaint: true,
-        logging: false, backgroundColor: '#FAFFFE', imageTimeout: 0,
+        logging: false, backgroundColor: C.bg, imageTimeout: 0,
       })
       const url = canvas.toDataURL('image/png')
       const b   = await new Promise<Blob>((res, rej) =>
@@ -115,14 +156,10 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   if (!isOpen) return null
 
   const { w, h } = FORMATS[format]
-  const str   = CARD_STR[cardLang]
-  const stats = [
-    { n: uniqueCountries, label: str.countries },
-    { n: trips.length,    label: str.trips     },
-    { n: totalDays,       label: str.days      },
-  ]
+  const str      = CARD_STR[cardLang]
+  const cardDate = new Date().toLocaleDateString(LOCALES[cardLang], { month: 'long', year: 'numeric' })
 
-  // ── Shared style helpers ─────────────────────────────────────────────
+  // ── Modal UI style helpers ───────────────────────────────────────────
   const pillStyle = (active: boolean): React.CSSProperties => ({
     padding: '5px 14px', borderRadius: 999,
     border: active ? 'none' : '1.5px solid var(--color-border)',
@@ -140,26 +177,61 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
     marginBottom: '0.5rem',
   }
 
-  // ── Off-screen card sub-components ──────────────────────────────────
-  const CardLogo = () => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ fontSize: 20, lineHeight: 1 }}>🌍</span>
-      <span style={{ fontSize: 20, fontWeight: 900, color: '#2DBF8A', letterSpacing: '-0.02em' }}>Visato</span>
+  // ── Card sub-components ──────────────────────────────────────────────
+
+  // "🌍 Visato" logotype
+  const Logo = ({ size = 17 }: { size?: number }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+      <span style={{ fontSize: size, lineHeight: 1 }}>🌍</span>
+      <span style={{ fontSize: size, fontWeight: 900, color: C.white, letterSpacing: '-0.02em' }}>
+        Visato
+      </span>
     </div>
   )
 
-  const CardUrl = ({ size = 12 }: { size?: number }) => (
-    <span style={{ fontSize: size, color: '#9CA3AF', fontWeight: 600, letterSpacing: '0.05em' }}>
-      visato.app
-    </span>
+  // "I've visited\n47\ncountries" — number in mint on its own line
+  const Headline = ({ numSize, textSize }: { numSize: number; textSize: number }) => (
+    <div>
+      <div style={{ fontSize: textSize, fontWeight: 700, color: C.white, lineHeight: 1.15, marginBottom: 8 }}>
+        {str.headlinePre.trim()}
+      </div>
+      <div style={{
+        fontSize: numSize, fontWeight: 900, color: C.mint,
+        lineHeight: 1, letterSpacing: '-0.04em', marginBottom: 8,
+      }}>
+        {uniqueCountries}
+      </div>
+      <div style={{ fontSize: textSize, fontWeight: 700, color: C.white, lineHeight: 1.15 }}>
+        {str.headlinePost.trim()}
+      </div>
+    </div>
   )
 
-  const CardMap = ({ mapH, mapScale = 175 }: { mapH: number; mapScale?: number }) => (
-    <div style={{ width: w, height: mapH, background: '#D6EEFF', flexShrink: 0, overflow: 'hidden' }}>
+  // Stat item: big mint number + small gray label
+  const Stat = ({ n, label, numSize = 44 }: { n: number; label: string; numSize?: number }) => (
+    <div>
+      <div style={{
+        fontSize: numSize, fontWeight: 900, color: C.mint,
+        lineHeight: 1, letterSpacing: '-0.03em',
+      }}>
+        {n}
+      </div>
+      <div style={{
+        fontSize: 11, color: C.gray, fontWeight: 700,
+        textTransform: 'uppercase', letterSpacing: '2px', marginTop: 7,
+      }}>
+        {label}
+      </div>
+    </div>
+  )
+
+  // World map in dark theme
+  const CardMap = ({ mapH, mapW = w, mapScale = 175 }: { mapH: number; mapW?: number; mapScale?: number }) => (
+    <div style={{ width: mapW, height: mapH, background: C.mapBg, flexShrink: 0, overflow: 'hidden' }}>
       <ComposableMap
-        width={w} height={mapH}
+        width={mapW} height={mapH}
         projectionConfig={{ scale: mapScale, center: [10, 8] }}
-        style={{ display: 'block', width: '100%', height: '100%', background: '#D6EEFF' }}
+        style={{ display: 'block', width: '100%', height: '100%', background: C.mapBg }}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {...({} as any)}
       >
@@ -173,8 +245,8 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
                 return (
                   <Geography
                     key={geo.rsmKey} geography={geo}
-                    fill={isVisited ? '#2DBF8A' : '#BACED8'}
-                    stroke="#FFFFFF" strokeWidth={0.5}
+                    fill={isVisited ? C.visited : C.unvisited}
+                    stroke={C.mapBg} strokeWidth={0.6}
                     style={{
                       default: { outline: 'none' },
                       hover:   { outline: 'none' },
@@ -189,159 +261,195 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
     </div>
   )
 
-  // Stat row: numbers 40-48px bold mint, labels 11px uppercase gray, 8px gap, 40-48px between items
-  const CardStatRow = ({ numSize, gap }: { numSize: number; gap: number }) => (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap, justifyContent: 'center' }}>
-      {stats.map((s, i) => (
-        <div key={i} style={{ textAlign: 'center' }}>
-          <div style={{
-            fontSize: numSize, fontWeight: 900, color: '#2DBF8A',
-            lineHeight: 1, letterSpacing: '-0.03em', marginBottom: 8,
-          }}>
-            {s.n}
-          </div>
-          <div style={{
-            fontSize: 11, color: '#6B7280', fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '2px',
-          }}>
-            {s.label}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-
-  const CardName = ({ size, mt }: { size: number; mt: number }) =>
-    displayName ? (
-      <div style={{
-        fontSize: size, color: '#6B7280', fontStyle: 'italic',
-        fontWeight: 400, marginTop: mt, textAlign: 'center',
-      }}>
-        — {displayName}
-      </div>
-    ) : null
-
-  // ── Card inner layout (switches on format) ───────────────────────────
+  // ── Card layouts ─────────────────────────────────────────────────────
   let cardInner: React.ReactNode
 
-  if (format === '16:9') {
-    // 1200×675: header(~72px) + map(~440px, 65%) + stats footer(~163px)
+  if (format === '9:16') {
+    // 1080×1920 — Stories
+    // Top ~348px | Map 1150px | Bottom flex:1 (~422px)
     cardInner = (
       <>
-        {/* Header */}
+        {/* Top: logo + headline */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '24px 48px', flexShrink: 0,
+          flexShrink: 0,
+          padding: '60px 60px 48px',
+          display: 'flex', flexDirection: 'column',
         }}>
-          <CardLogo />
-          <CardUrl />
+          <Logo size={18} />
+          <div style={{ marginTop: 40 }}>
+            <Headline numSize={80} textSize={36} />
+          </div>
         </div>
-        {/* Map — 65% of 675 ≈ 439px */}
-        <CardMap mapH={439} />
-        {/* Stats footer */}
+
+        {/* Map — full card width, no side padding */}
+        <CardMap mapH={1150} mapScale={185} />
+
+        {/* Bottom: stats + date/logo */}
         <div style={{
           flex: 1,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: '28px 48px', background: '#FAFFFE',
-          borderTop: '1px solid #E8F5EF',
+          padding: '44px 60px 60px',
+          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         }}>
-          <CardStatRow numSize={44} gap={48} />
-          <CardName size={13} mt={14} />
+          {/* Two key stats */}
+          <div style={{ display: 'flex', gap: 52 }}>
+            {/* Countries with /195 */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                <span style={{
+                  fontSize: 52, fontWeight: 900, color: C.mint,
+                  lineHeight: 1, letterSpacing: '-0.03em',
+                }}>
+                  {uniqueCountries}
+                </span>
+                <span style={{ fontSize: 16, color: C.gray, fontWeight: 600 }}>
+                  {str.of195}
+                </span>
+              </div>
+              <div style={{
+                fontSize: 11, color: C.gray, fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '2px', marginTop: 7,
+              }}>
+                {str.countries}
+              </div>
+            </div>
+
+            {/* Days abroad */}
+            <div>
+              <div style={{
+                fontSize: 52, fontWeight: 900, color: C.mint,
+                lineHeight: 1, letterSpacing: '-0.03em',
+              }}>
+                {totalDays}
+              </div>
+              <div style={{
+                fontSize: 11, color: C.gray, fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '2px', marginTop: 7,
+              }}>
+                {str.days}
+              </div>
+            </div>
+          </div>
+
+          {/* Date left · logo right */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 14, color: C.dimGray, fontWeight: 500 }}>{cardDate}</span>
+            <Logo size={16} />
+          </div>
         </div>
       </>
+    )
+  } else if (format === '16:9') {
+    // 1200×675 — landscape: map left 60%, stats panel right 40%
+    const mapW = Math.round(w * 0.60) // 720px
+    cardInner = (
+      <div style={{ display: 'flex', height: h }}>
+        {/* Left: Map */}
+        <CardMap mapW={mapW} mapH={h} mapScale={138} />
+
+        {/* Right: Stats panel */}
+        <div style={{
+          flex: 1, background: C.bg,
+          padding: '48px 52px',
+          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        }}>
+          {/* Logo top-left of panel */}
+          <Logo size={17} />
+
+          {/* Stats column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
+            <Stat n={uniqueCountries} label={str.countries} numSize={52} />
+            <Stat n={totalDays}       label={str.days}      numSize={52} />
+            <Stat n={trips.length}    label={str.trips}     numSize={52} />
+          </div>
+
+          {/* Date + optional name bottom */}
+          <div>
+            {displayName && (
+              <div style={{
+                fontSize: 13, color: C.dimGray, fontStyle: 'italic', marginBottom: 8,
+              }}>
+                — {displayName}
+              </div>
+            )}
+            <span style={{ fontSize: 12, color: C.dimGray, fontWeight: 500 }}>{cardDate}</span>
+          </div>
+        </div>
+      </div>
     )
   } else if (format === '1:1') {
-    // 1080×1080: header(~96px) + map(~594px, 55%) + stats(~390px)
+    // 1080×1080
+    // Top ~244px | Map 600px | Bottom ~236px
     cardInner = (
       <>
+        {/* Header: headline left, logo right */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '32px 48px', flexShrink: 0,
+          flexShrink: 0,
+          padding: '56px 60px 40px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         }}>
-          <CardLogo />
-          <CardUrl size={13} />
+          <Headline numSize={64} textSize={28} />
+          <Logo size={16} />
         </div>
-        <CardMap mapH={594} />
+
+        {/* Map */}
+        <CardMap mapH={600} mapScale={165} />
+
+        {/* Stats + footer */}
         <div style={{
           flex: 1,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: '40px 48px', background: '#FAFFFE',
-          borderTop: '1px solid #E8F5EF',
+          padding: '32px 60px',
+          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         }}>
-          <CardStatRow numSize={48} gap={48} />
-          <CardName size={16} mt={20} />
-        </div>
-      </>
-    )
-  } else if (format === '4:5') {
-    // 1080×1350: header(~96px) + map(~675px, 50%) + stats(~579px)
-    cardInner = (
-      <>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '32px 48px', flexShrink: 0,
-        }}>
-          <CardLogo />
-          <CardUrl size={13} />
-        </div>
-        <CardMap mapH={675} />
-        <div style={{
-          flex: 1,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: '48px 48px', background: '#FAFFFE',
-          borderTop: '1px solid #E8F5EF',
-        }}>
-          <CardStatRow numSize={56} gap={48} />
-          <CardName size={18} mt={24} />
+          <div style={{ display: 'flex', gap: 44 }}>
+            <Stat n={uniqueCountries} label={str.countries} numSize={40} />
+            <Stat n={totalDays}       label={str.days}      numSize={40} />
+            <Stat n={trips.length}    label={str.trips}     numSize={40} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {displayName
+              ? <span style={{ fontSize: 13, color: C.dimGray, fontStyle: 'italic' }}>— {displayName}</span>
+              : <span />
+            }
+            <span style={{ fontSize: 12, color: C.dimGray }}>{cardDate}</span>
+          </div>
         </div>
       </>
     )
   } else {
-    // 9:16 (1080×1920): header(100px) + stats-above(300px) + map(864px, 45%) + footer(656px)
+    // 4:5 (1080×1350) — similar to 9:16 but shorter
+    // Top ~260px | Map 750px | Bottom ~340px
     cardInner = (
       <>
-        {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '40px 48px 24px', flexShrink: 0,
-        }}>
-          <CardLogo />
-          <CardUrl size={14} />
-        </div>
-
-        {/* Stats above map — very large numbers, 60px top breathing room */}
+        {/* Header: headline left, logo right */}
         <div style={{
           flexShrink: 0,
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          padding: '60px 48px 56px',
+          padding: '56px 60px 40px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         }}>
-          <div style={{
-            fontSize: 12, color: '#9CA3AF', fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '4px', marginBottom: 28,
-          }}>
-            {str.tagline}
-          </div>
-          <CardStatRow numSize={64} gap={44} />
+          <Headline numSize={72} textSize={32} />
+          <Logo size={17} />
         </div>
 
-        {/* Map — 45% of 1920 ≈ 864px */}
-        <CardMap mapH={864} mapScale={190} />
+        {/* Map */}
+        <CardMap mapH={750} mapScale={175} />
 
-        {/* Branding footer */}
+        {/* Stats + footer */}
         <div style={{
-          flex: 1, background: '#FAFFFE',
-          borderTop: '1px solid #E8F5EF',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          padding: '40px 48px',
+          flex: 1,
+          padding: '40px 60px',
+          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         }}>
-          <CardName size={22} mt={0} />
-          <div style={{
-            fontSize: 18, color: '#2DBF8A', fontWeight: 800,
-            letterSpacing: '0.04em',
-            marginTop: displayName ? 20 : 0,
-          }}>
-            visato.app
+          <div style={{ display: 'flex', gap: 44 }}>
+            <Stat n={uniqueCountries} label={str.countries} numSize={44} />
+            <Stat n={totalDays}       label={str.days}      numSize={44} />
+            <Stat n={trips.length}    label={str.trips}     numSize={44} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {displayName
+              ? <span style={{ fontSize: 14, color: C.dimGray, fontStyle: 'italic' }}>— {displayName}</span>
+              : <span style={{ fontSize: 13, color: C.dimGray }}>{cardDate}</span>
+            }
+            <Logo size={16} />
           </div>
         </div>
       </>
@@ -361,13 +469,13 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
 
   return (
     <>
-      {/* ── Off-screen share card — always rendered so SVG paths load ── */}
+      {/* ── Off-screen share card ─────────────────────────────────────── */}
       <div
         ref={cardRef}
         style={{
           position: 'fixed', left: -9999, top: -9999,
           width: w, height: h,
-          background: '#FAFFFE',
+          background: C.bg,
           fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
@@ -418,22 +526,18 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             >✕</button>
           </div>
 
-          {/* ── Settings stage ────────────────────────────────────────── */}
+          {/* ── Settings ──────────────────────────────────────────────── */}
           {stage === 'settings' && (
             <div>
-              {/* Format selector */}
               <div style={{ marginBottom: '1.125rem' }}>
                 <div style={sectionLabel}>{t('share.format')}</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {FORMAT_KEYS.map(f => (
-                    <button key={f} onClick={() => setFormat(f)} style={pillStyle(format === f)}>
-                      {f}
-                    </button>
+                    <button key={f} onClick={() => setFormat(f)} style={pillStyle(format === f)}>{f}</button>
                   ))}
                 </div>
               </div>
 
-              {/* Language selector */}
               <div style={{ marginBottom: '1.75rem' }}>
                 <div style={sectionLabel}>{t('share.language')}</div>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -445,7 +549,6 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
                 </div>
               </div>
 
-              {/* Generate button */}
               <button
                 onClick={generate}
                 disabled={!topoData}
@@ -465,7 +568,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             </div>
           )}
 
-          {/* ── Generating spinner ────────────────────────────────────── */}
+          {/* ── Generating ────────────────────────────────────────────── */}
           {stage === 'generating' && (
             <div style={{
               width: '100%',
@@ -492,7 +595,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             </div>
           )}
 
-          {/* ── Done / Error: preview + actions ──────────────────────── */}
+          {/* ── Done / Error ──────────────────────────────────────────── */}
           {(stage === 'done' || stage === 'error') && (
             <>
               <div style={{
@@ -518,7 +621,6 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
               </div>
 
               <div style={{ display: 'flex', gap: '0.625rem', alignItems: 'center', justifyContent: 'space-between' }}>
-                {/* Back to settings */}
                 <button
                   onClick={backToSettings}
                   style={{
