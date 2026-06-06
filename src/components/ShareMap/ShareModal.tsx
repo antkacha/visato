@@ -79,7 +79,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       const canvas = await html2canvas(cardRef.current, {
         width: w, height: h, scale: 1,
         useCORS: true, allowTaint: true,
-        logging: false, backgroundColor: '#ffffff', imageTimeout: 0,
+        logging: false, backgroundColor: '#FAFFFE', imageTimeout: 0,
       })
       const url = canvas.toDataURL('image/png')
       const b   = await new Promise<Blob>((res, rej) =>
@@ -144,16 +144,22 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   const CardLogo = () => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span style={{ fontSize: 20, lineHeight: 1 }}>🌍</span>
-      <span style={{ fontSize: 18, fontWeight: 900, color: '#2DBF8A', letterSpacing: '-0.02em' }}>Visato</span>
+      <span style={{ fontSize: 20, fontWeight: 900, color: '#2DBF8A', letterSpacing: '-0.02em' }}>Visato</span>
     </div>
   )
 
+  const CardUrl = ({ size = 12 }: { size?: number }) => (
+    <span style={{ fontSize: size, color: '#9CA3AF', fontWeight: 600, letterSpacing: '0.05em' }}>
+      visato.app
+    </span>
+  )
+
   const CardMap = ({ mapH, mapScale = 175 }: { mapH: number; mapScale?: number }) => (
-    <div style={{ width: w, height: mapH, background: '#EAF4FF', flexShrink: 0, overflow: 'hidden' }}>
+    <div style={{ width: w, height: mapH, background: '#D6EEFF', flexShrink: 0, overflow: 'hidden' }}>
       <ComposableMap
         width={w} height={mapH}
         projectionConfig={{ scale: mapScale, center: [10, 8] }}
-        style={{ display: 'block', width: '100%', height: '100%', background: '#EAF4FF' }}
+        style={{ display: 'block', width: '100%', height: '100%', background: '#D6EEFF' }}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {...({} as any)}
       >
@@ -167,7 +173,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
                 return (
                   <Geography
                     key={geo.rsmKey} geography={geo}
-                    fill={isVisited ? '#2DBF8A' : '#C8DDEE'}
+                    fill={isVisited ? '#2DBF8A' : '#BACED8'}
                     stroke="#FFFFFF" strokeWidth={0.5}
                     style={{
                       default: { outline: 'none' },
@@ -183,19 +189,20 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
     </div>
   )
 
-  const CardStatRow = ({ numSize, lblSize, gap }: { numSize: number; lblSize: number; gap: number }) => (
+  // Stat row: numbers 40-48px bold mint, labels 11px uppercase gray, 8px gap, 40-48px between items
+  const CardStatRow = ({ numSize, gap }: { numSize: number; gap: number }) => (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap, justifyContent: 'center' }}>
       {stats.map((s, i) => (
         <div key={i} style={{ textAlign: 'center' }}>
           <div style={{
             fontSize: numSize, fontWeight: 900, color: '#2DBF8A',
-            lineHeight: 1, letterSpacing: '-0.03em', marginBottom: 7,
+            lineHeight: 1, letterSpacing: '-0.03em', marginBottom: 8,
           }}>
             {s.n}
           </div>
           <div style={{
-            fontSize: lblSize, color: '#6B7280', fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '1.8px',
+            fontSize: 11, color: '#6B7280', fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '2px',
           }}>
             {s.label}
           </div>
@@ -204,125 +211,136 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
     </div>
   )
 
+  const CardName = ({ size, mt }: { size: number; mt: number }) =>
+    displayName ? (
+      <div style={{
+        fontSize: size, color: '#6B7280', fontStyle: 'italic',
+        fontWeight: 400, marginTop: mt, textAlign: 'center',
+      }}>
+        — {displayName}
+      </div>
+    ) : null
+
   // ── Card inner layout (switches on format) ───────────────────────────
   let cardInner: React.ReactNode
 
   if (format === '16:9') {
-    // 1200×675 — map big, compact stats footer
+    // 1200×675: header(~72px) + map(~440px, 65%) + stats footer(~163px)
     cardInner = (
       <>
+        {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '18px 56px 14px', flexShrink: 0,
+          padding: '24px 48px', flexShrink: 0,
         }}>
           <CardLogo />
-          <span style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 600, letterSpacing: '0.05em' }}>visato.app</span>
+          <CardUrl />
         </div>
-        <CardMap mapH={490} />
+        {/* Map — 65% of 675 ≈ 439px */}
+        <CardMap mapH={439} />
+        {/* Stats footer */}
         <div style={{
-          flex: 1, padding: '0 56px', background: '#F8FAFC',
-          borderTop: '1px solid #EDEFF2',
+          flex: 1,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: '28px 48px', background: '#FAFFFE',
+          borderTop: '1px solid #E8F5EF',
         }}>
-          <CardStatRow numSize={40} lblSize={10} gap={68} />
-          {displayName && (
-            <div style={{ fontSize: 13, color: '#374151', fontWeight: 500, marginTop: 10 }}>
-              — {displayName}
-            </div>
-          )}
+          <CardStatRow numSize={44} gap={48} />
+          <CardName size={13} mt={14} />
         </div>
       </>
     )
   } else if (format === '1:1') {
-    // 1080×1080 — balanced split
+    // 1080×1080: header(~96px) + map(~594px, 55%) + stats(~390px)
     cardInner = (
       <>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '28px 64px 18px', flexShrink: 0,
+          padding: '32px 48px', flexShrink: 0,
         }}>
           <CardLogo />
-          <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 600, letterSpacing: '0.05em' }}>visato.app</span>
+          <CardUrl size={13} />
         </div>
-        <CardMap mapH={580} />
+        <CardMap mapH={594} />
         <div style={{
-          flex: 1, padding: '0 64px', background: '#F8FAFC',
-          borderTop: '1px solid #EDEFF2',
+          flex: 1,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: '40px 48px', background: '#FAFFFE',
+          borderTop: '1px solid #E8F5EF',
         }}>
-          <CardStatRow numSize={58} lblSize={12} gap={76} />
-          {displayName && (
-            <div style={{ fontSize: 17, color: '#374151', fontWeight: 500, marginTop: 18 }}>
-              — {displayName}
-            </div>
-          )}
+          <CardStatRow numSize={48} gap={48} />
+          <CardName size={16} mt={20} />
         </div>
       </>
     )
   } else if (format === '4:5') {
-    // 1080×1350 — map top half, large stats bottom half
+    // 1080×1350: header(~96px) + map(~675px, 50%) + stats(~579px)
     cardInner = (
       <>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '32px 64px 20px', flexShrink: 0,
+          padding: '32px 48px', flexShrink: 0,
         }}>
           <CardLogo />
-          <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 600, letterSpacing: '0.05em' }}>visato.app</span>
+          <CardUrl size={13} />
         </div>
-        <CardMap mapH={740} />
+        <CardMap mapH={675} />
         <div style={{
-          flex: 1, padding: '0 64px', background: '#F8FAFC',
-          borderTop: '1px solid #EDEFF2',
+          flex: 1,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: '48px 48px', background: '#FAFFFE',
+          borderTop: '1px solid #E8F5EF',
         }}>
-          <CardStatRow numSize={70} lblSize={13} gap={84} />
-          {displayName && (
-            <div style={{ fontSize: 20, color: '#374151', fontWeight: 500, marginTop: 22 }}>
-              — {displayName}
-            </div>
-          )}
+          <CardStatRow numSize={56} gap={48} />
+          <CardName size={18} mt={24} />
         </div>
       </>
     )
   } else {
-    // 9:16 (1080×1920) — portrait: large stats above map, branding below
+    // 9:16 (1080×1920): header(100px) + stats-above(300px) + map(864px, 45%) + footer(656px)
     cardInner = (
       <>
+        {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '52px 72px 28px', flexShrink: 0,
+          padding: '40px 48px 24px', flexShrink: 0,
         }}>
           <CardLogo />
-          <span style={{ fontSize: 14, color: '#9CA3AF', fontWeight: 600, letterSpacing: '0.05em' }}>visato.app</span>
+          <CardUrl size={14} />
         </div>
-        {/* Stats hero — above the map */}
+
+        {/* Stats above map — very large numbers, 60px top breathing room */}
         <div style={{
-          flexShrink: 0, padding: '0 72px 52px',
+          flexShrink: 0,
           display: 'flex', flexDirection: 'column', alignItems: 'center',
+          padding: '60px 48px 56px',
         }}>
           <div style={{
-            fontSize: 13, color: '#9CA3AF', fontWeight: 700,
+            fontSize: 12, color: '#9CA3AF', fontWeight: 700,
             textTransform: 'uppercase', letterSpacing: '4px', marginBottom: 28,
           }}>
             {str.tagline}
           </div>
-          <CardStatRow numSize={84} lblSize={14} gap={56} />
+          <CardStatRow numSize={64} gap={44} />
         </div>
-        <CardMap mapH={1200} mapScale={200} />
-        {/* Footer */}
+
+        {/* Map — 45% of 1920 ≈ 864px */}
+        <CardMap mapH={864} mapScale={190} />
+
+        {/* Branding footer */}
         <div style={{
-          flex: 1, background: '#F8FAFC',
-          borderTop: '1px solid #EDEFF2',
+          flex: 1, background: '#FAFFFE',
+          borderTop: '1px solid #E8F5EF',
           display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', padding: '0 72px',
+          alignItems: 'center', justifyContent: 'center',
+          padding: '40px 48px',
         }}>
-          {displayName && (
-            <div style={{ fontSize: 22, color: '#374151', fontWeight: 500, marginBottom: 14 }}>
-              — {displayName}
-            </div>
-          )}
-          <div style={{ fontSize: 16, color: '#2DBF8A', fontWeight: 700, letterSpacing: '0.05em' }}>
+          <CardName size={22} mt={0} />
+          <div style={{
+            fontSize: 18, color: '#2DBF8A', fontWeight: 800,
+            letterSpacing: '0.04em',
+            marginTop: displayName ? 20 : 0,
+          }}>
             visato.app
           </div>
         </div>
@@ -349,7 +367,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         style={{
           position: 'fixed', left: -9999, top: -9999,
           width: w, height: h,
-          background: '#FFFFFF',
+          background: '#FAFFFE',
           fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
