@@ -156,8 +156,16 @@ const THEME = {
 }
 
 const TOGGLE_H  = 50
-const MIN_SCALE = 0.6
-const MAX_SCALE = 15
+const MIN_SCALE = 1   // no zooming out beyond full world view
+const MAX_SCALE = 8
+
+// d3-style translateExtent clamp: [[-200,-150],[vW+200,vH+150]]
+function clampPan(tx: number, ty: number, k: number, vW: number, vH: number) {
+  return {
+    x: Math.min(200 * k, Math.max(tx, vW - (vW + 200) * k)),
+    y: Math.min(150 * k, Math.max(ty, vH - (vH + 150) * k)),
+  }
+}
 
 function tripDays(trip: TripEntry): number {
   const exit = trip.exitDate === 'ongoing' ? today() : trip.exitDate
@@ -303,7 +311,10 @@ export default function MapPage({ trips, user }: Props) {
       setPanZoom(prev => {
         const s = Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev.scale * factor))
         const k = s / prev.scale
-        return { scale: s, x: cx * (1 - k) + prev.x * k, y: cy * (1 - k) + prev.y * k }
+        const nx = cx * (1 - k) + prev.x * k
+        const ny = cy * (1 - k) + prev.y * k
+        const { x, y } = clampPan(nx, ny, s, el.offsetWidth, el.offsetHeight)
+        return { scale: s, x, y }
       })
     }
 
@@ -341,24 +352,24 @@ export default function MapPage({ trips, user }: Props) {
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY,
         )
-        const k       = (newDist / ts.dist)
+        const k        = (newDist / ts.dist)
         const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, ts.scale * k))
         const sk       = newScale / ts.scale
         const midX    = (e.touches[0].clientX + e.touches[1].clientX) / 2
         const midY    = (e.touches[0].clientY + e.touches[1].clientY) / 2
         const iMidX   = (ts.touches[0].x + ts.touches[1].x) / 2
         const iMidY   = (ts.touches[0].y + ts.touches[1].y) / 2
-        setPanZoom({
-          scale: newScale,
-          x: iMidX * (1 - sk) + ts.tx * sk + (midX - iMidX),
-          y: iMidY * (1 - sk) + ts.ty * sk + (midY - iMidY),
-        })
+        const nx = iMidX * (1 - sk) + ts.tx * sk + (midX - iMidX)
+        const ny = iMidY * (1 - sk) + ts.ty * sk + (midY - iMidY)
+        const { x, y } = clampPan(nx, ny, newScale, el.offsetWidth, el.offsetHeight)
+        setPanZoom({ scale: newScale, x, y })
       } else if (e.touches.length === 1 && ts.touches.length >= 1) {
-        setPanZoom(prev => ({
-          ...prev,
-          x: ts.tx + e.touches[0].clientX - ts.touches[0].x,
-          y: ts.ty + e.touches[0].clientY - ts.touches[0].y,
-        }))
+        const nx = ts.tx + e.touches[0].clientX - ts.touches[0].x
+        const ny = ts.ty + e.touches[0].clientY - ts.touches[0].y
+        setPanZoom(prev => {
+          const { x, y } = clampPan(nx, ny, prev.scale, el.offsetWidth, el.offsetHeight)
+          return { ...prev, x, y }
+        })
       }
     }
 
@@ -382,7 +393,14 @@ export default function MapPage({ trips, user }: Props) {
     const onMove = (e: MouseEvent) => {
       const dr = dragRef.current
       if (!dr) return
-      setPanZoom(prev => ({ ...prev, x: dr.tx + e.clientX - dr.sx, y: dr.ty + e.clientY - dr.sy }))
+      const el = mapContainerRef.current
+      if (!el) return
+      const nx = dr.tx + e.clientX - dr.sx
+      const ny = dr.ty + e.clientY - dr.sy
+      setPanZoom(prev => {
+        const { x, y } = clampPan(nx, ny, prev.scale, el.offsetWidth, el.offsetHeight)
+        return { ...prev, x, y }
+      })
     }
     const onUp = () => { dragRef.current = null; setIsPanning(false) }
     window.addEventListener('mousemove', onMove)
@@ -485,7 +503,10 @@ export default function MapPage({ trips, user }: Props) {
     setPanZoom(prev => {
       const s = Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev.scale * factor))
       const k = s / prev.scale
-      return { scale: s, x: cx * (1 - k) + prev.x * k, y: cy * (1 - k) + prev.y * k }
+      const nx = cx * (1 - k) + prev.x * k
+      const ny = cy * (1 - k) + prev.y * k
+      const { x, y } = clampPan(nx, ny, s, el.offsetWidth, el.offsetHeight)
+      return { scale: s, x, y }
     })
     btnZoomTimer.current = setTimeout(() => setIsButtonZooming(false), 350)
   }, [])
@@ -581,7 +602,8 @@ export default function MapPage({ trips, user }: Props) {
         {/* 3D Globe — always mounted to avoid WebGL teardown */}
         {countries.length > 0 ? (
           <div
-            style={{ filter: colors.globeShadow }}
+            style={{ filter: colors.globeShadow, overflow: 'hidden' }}
+            onWheel={e => e.preventDefault()}
             onMouseMove={e => {
               globeMouseRef.current = { x: e.clientX, y: e.clientY }
               // Keep tooltip position in sync while moving over the same country
