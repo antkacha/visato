@@ -6,7 +6,6 @@ import html2canvas from 'html2canvas'
 import type { User } from '@supabase/supabase-js'
 import type { TripEntry } from '../../types'
 import { geoFeatureSlug } from '../../constants/countryIsoMap'
-import { COUNTRY_FLAGS } from '../../constants/countries'
 import { differenceInDays, parseISO } from 'date-fns'
 import { today } from '../../utils/dateUtils'
 
@@ -37,29 +36,53 @@ const FORMATS: Record<FormatKey, { w: number; h: number }> = {
 const FORMAT_KEYS: FormatKey[] = ['16:9', '1:1', '4:5', '9:16']
 const CARD_LANGS: CardLang[]   = ['en', 'uk', 'ru']
 
-const D = {
-  bg:        '#0D1F1A',
-  mapBg:     '#162820',
-  unvisited: '#1E3D30',
-  visited:   '#2DBF8A',
+// ── Light card design tokens ─────────────────────────────────────────
+const L = {
+  bg:        '#FFFFFF',
+  border:    '#E5E7EB',
   mint:      '#2DBF8A',
-  white:     '#FFFFFF',
-  gray:      'rgba(255,255,255,0.45)',
-  dim20:     'rgba(45,191,138,0.20)',
-  dim30:     'rgba(45,191,138,0.30)',
-  tickerBg:  '#2DBF8A',
-  tickerTxt: '#0D1F1A',
+  dark:      '#1F2937',
+  gray:      '#6B7280',
+  mapBg:     '#FFFFFF',
+  unvisited: '#E5E7EB',
+  visited:   '#2DBF8A',
 }
 
 const LOCALES: Record<CardLang, string> = { en: 'en-US', uk: 'uk-UA', ru: 'ru-RU' }
 
-const CARD_STR: Record<CardLang, { countries: string; trips: string; days: string; year: string }> = {
-  en: { countries: 'Countries', trips: 'Trips', days: 'Days abroad',       year: 'Year' },
-  uk: { countries: 'Країни',    trips: 'Поїздки', days: 'Днів за кордоном', year: 'Рік'  },
-  ru: { countries: 'Страны',    trips: 'Поездки', days: 'Дней за рубежом',  year: 'Год'  },
+const CARD_STR: Record<CardLang, {
+  line1: string
+  line2a: string  // dark portion of line 2
+  line2b: string  // mint portion of line 2
+  countriesLabel: string
+  daysLabel: string
+  tripsLabel: string
+}> = {
+  en: {
+    line1: 'The world is big.',
+    line2a: 'My list is ',
+    line2b: 'growing.',
+    countriesLabel: 'Countries Visited',
+    daysLabel: 'Days Abroad',
+    tripsLabel: 'Trips Taken',
+  },
+  uk: {
+    line1: 'Світ великий.',
+    line2a: 'Мій список ',
+    line2b: 'росте.',
+    countriesLabel: 'Відвідано країн',
+    daysLabel: 'Днів за кордоном',
+    tripsLabel: 'Поїздок',
+  },
+  ru: {
+    line1: 'Мир велик.',
+    line2a: 'Мой список ',
+    line2b: 'растёт.',
+    countriesLabel: 'Посещено стран',
+    daysLabel: 'Дней за рубежом',
+    tripsLabel: 'Поездок',
+  },
 }
-
-const TICKER_TEXT = '  ✈  VISATO  ✈  MY TRAVEL MAP'.repeat(8)
 
 export default function ShareModal({ isOpen, onClose, trips, topoData, user }: Props) {
   const { t, i18n } = useTranslation()
@@ -71,20 +94,14 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   const [dataUrl,   setDataUrl]   = useState<string | null>(null)
   const [blob,      setBlob]      = useState<Blob | null>(null)
   const [copied,    setCopied]    = useState(false)
-  // renderMap gates the ComposableMap — only true after Generate is clicked.
-  // Prevents a crash when topoData is null on modal open.
+  // ComposableMap only mounts after Generate is clicked (prevents crash with null topoData)
   const [renderMap, setRenderMap] = useState(false)
 
   const visitedSlugs    = useMemo(() => new Set(trips.map(t => t.country)), [trips])
   const uniqueCountries = visitedSlugs.size
   const totalDays       = useMemo(() => trips.reduce((s, t) => s + tripDays(t), 0), [trips])
   const displayName     = user?.user_metadata?.full_name as string | undefined
-  const flagList        = useMemo(
-    () => ([...visitedSlugs].map(s => COUNTRY_FLAGS[s]).filter(Boolean) as string[]),
-    [visitedSlugs],
-  )
 
-  // Reset to settings panel (and drop the rendered map) on open/close
   useEffect(() => {
     if (isOpen) {
       const lng = (i18n.language?.slice(0, 2) ?? 'en') as CardLang
@@ -98,15 +115,15 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
 
   const generate = useCallback(async () => {
     if (!cardRef.current || !topoData) return
-    setRenderMap(true)   // allow ComposableMap to mount
+    setRenderMap(true)
     setStage('generating')
-    await new Promise(r => setTimeout(r, 1000)) // wait for SVG paths to paint
+    await new Promise(r => setTimeout(r, 1000))
     const { w, h } = FORMATS[format]
     try {
       const canvas = await html2canvas(cardRef.current, {
         width: w, height: h, scale: 1,
         useCORS: true, allowTaint: true,
-        logging: false, backgroundColor: D.bg, imageTimeout: 0,
+        logging: false, backgroundColor: L.bg, imageTimeout: 0,
       })
       const url = canvas.toDataURL('image/png')
       const b   = await new Promise<Blob>((res, rej) =>
@@ -142,48 +159,60 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
 
   if (!isOpen) return null
 
-  const { w, h }    = FORMATS[format]
-  const str         = CARD_STR[cardLang]
-  const currentYear = new Date().getFullYear()
-  const cardDate    = new Date().toLocaleDateString(LOCALES[cardLang], { month: 'long', year: 'numeric' })
+  const { w, h } = FORMATS[format]
+  const str      = CARD_STR[cardLang]
+  const cardDate = new Date().toLocaleDateString(LOCALES[cardLang], { month: 'long', year: 'numeric' })
 
-  // ── Reusable card JSX helpers (plain functions, NOT React components) ──
-  // Called as {header()} not <Header/>, so React never sees them as component types.
+  // ── Card building helpers (plain functions, NOT React components) ─────
 
-  const header = (padH = 48, logoSize = 20) => (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: `26px ${padH}px`, flexShrink: 0, background: D.bg,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: logoSize, lineHeight: 1 }}>🌍</span>
-        <span style={{ fontSize: logoSize, fontWeight: 900, color: D.mint, letterSpacing: '-0.02em' }}>
+  // Centered "Visato" text flanked by horizontal rules
+  const brandBar = (padH = 40) => (
+    <div style={{ padding: `32px ${padH}px 20px`, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ flex: 1, height: 1, background: L.border }} />
+        <span style={{ fontSize: 20, fontWeight: 900, color: L.mint, letterSpacing: '-0.02em' }}>
           Visato
         </span>
+        <div style={{ flex: 1, height: 1, background: L.border }} />
       </div>
-      <span style={{ fontSize: 13, color: D.gray, fontWeight: 600, letterSpacing: '0.05em' }}>
-        visato.app
-      </span>
     </div>
   )
 
-  const rule = () => (
-    <div style={{ height: 1, background: D.dim20, flexShrink: 0 }} />
+  // Two-line headline — second line has mint-colored last word
+  const headlineBlock = (padH = 40, fontSize = 48) => (
+    <div style={{ padding: `0 ${padH}px 28px`, flexShrink: 0 }}>
+      <div style={{
+        fontSize, fontWeight: 900, color: L.dark,
+        lineHeight: 1.15, letterSpacing: '-0.03em',
+      }}>
+        {str.line1}
+      </div>
+      <div style={{
+        fontSize, fontWeight: 900,
+        lineHeight: 1.15, letterSpacing: '-0.03em',
+        marginTop: 6,
+      }}>
+        <span style={{ color: L.dark }}>{str.line2a}</span>
+        <span style={{ color: L.mint }}>{str.line2b}</span>
+      </div>
+    </div>
   )
 
-  // Map placeholder used when renderMap is false or topoData is absent
-  const mapPlaceholder = (mapH: number, mapW = w) => (
-    <div style={{ width: mapW, height: mapH, background: D.mapBg, flexShrink: 0 }} />
-  )
-
-  const map = (mapH: number, scale: number, mapW = w) => {
-    if (!renderMap || !topoData) return mapPlaceholder(mapH, mapW)
+  // World map with 24px side padding; placeholder until renderMap is true
+  const mapBlock = (mapH: number, scale: number, innerW = w - 48) => {
+    if (!renderMap || !topoData) {
+      return (
+        <div style={{ padding: '0 24px', flexShrink: 0 }}>
+          <div style={{ height: mapH, background: L.unvisited }} />
+        </div>
+      )
+    }
     return (
-      <div style={{ width: mapW, height: mapH, background: D.mapBg, flexShrink: 0, overflow: 'hidden' }}>
+      <div style={{ padding: '0 24px', flexShrink: 0 }}>
         <ComposableMap
-          width={mapW} height={mapH}
+          width={innerW} height={mapH}
           projectionConfig={{ scale, center: [10, 8] }}
-          style={{ display: 'block', width: '100%', height: '100%', background: D.mapBg }}
+          style={{ display: 'block', width: innerW, height: mapH, background: L.mapBg }}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {...({} as any)}
         >
@@ -197,8 +226,8 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
                   return (
                     <Geography
                       key={geo.rsmKey} geography={geo}
-                      fill={isVisited ? D.visited : D.unvisited}
-                      stroke={D.bg} strokeWidth={0.5}
+                      fill={isVisited ? L.visited : L.unvisited}
+                      stroke={L.bg} strokeWidth={0.5}
                       style={{
                         default: { outline: 'none' },
                         hover:   { outline: 'none' },
@@ -214,227 +243,179 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
     )
   }
 
-  // Horizontal 3-stat row for non-9:16 layouts
-  const statRow = (numSize: number, padV: number, padH: number, gap: number) => {
-    const items = [
-      { n: uniqueCountries, label: str.countries },
-      { n: totalDays,       label: str.days      },
-      { n: trips.length,    label: str.trips     },
-    ]
-    const nodes: React.ReactNode[] = []
-    items.forEach((item, i) => {
-      if (i > 0) nodes.push(
-        <div key={`d${i}`} style={{ width: 1, height: 52, background: D.dim20, flexShrink: 0, margin: `0 ${gap}px` }} />,
-      )
-      nodes.push(
-        <div key={`s${i}`} style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: numSize, fontWeight: 900, color: D.white, lineHeight: 1, letterSpacing: '-0.03em', marginBottom: 10 }}>
-            {item.n}
-          </div>
-          <div style={{ fontSize: 11, color: D.mint, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '3px' }}>
-            {item.label}
-          </div>
-        </div>,
-      )
-    })
+  // Three stats row, left-aligned
+  const statsBlock = (padH = 40, numSize = 72, gap = 44) => {
+    const of195Size = Math.round(numSize * 0.32)
     return (
-      <div style={{ flex: 1, background: D.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: `${padV}px ${padH}px` }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {nodes}
+      <div style={{ padding: `32px ${padH}px 24px`, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap, alignItems: 'flex-start' }}>
+          {/* Countries */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+              <span style={{
+                fontSize: numSize, fontWeight: 900, color: L.mint,
+                lineHeight: 1, letterSpacing: '-0.04em',
+              }}>
+                {uniqueCountries}
+              </span>
+              <span style={{ fontSize: of195Size, color: L.gray, fontWeight: 600 }}>
+                /195
+              </span>
+            </div>
+            <div style={{
+              fontSize: 11, color: L.gray, fontWeight: 700,
+              textTransform: 'uppercase' as const, letterSpacing: '2px', marginTop: 8,
+            }}>
+              {str.countriesLabel}
+            </div>
+          </div>
+          {/* Days */}
+          <div>
+            <div style={{
+              fontSize: numSize, fontWeight: 900, color: L.mint,
+              lineHeight: 1, letterSpacing: '-0.04em',
+            }}>
+              {totalDays}
+            </div>
+            <div style={{
+              fontSize: 11, color: L.gray, fontWeight: 700,
+              textTransform: 'uppercase' as const, letterSpacing: '2px', marginTop: 8,
+            }}>
+              {str.daysLabel}
+            </div>
+          </div>
+          {/* Trips */}
+          <div>
+            <div style={{
+              fontSize: numSize, fontWeight: 900, color: L.mint,
+              lineHeight: 1, letterSpacing: '-0.04em',
+            }}>
+              {trips.length}
+            </div>
+            <div style={{
+              fontSize: 11, color: L.gray, fontWeight: 700,
+              textTransform: 'uppercase' as const, letterSpacing: '2px', marginTop: 8,
+            }}>
+              {str.tripsLabel}
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
-  const footer = (padH = 48) => (
+  // Footer: name + date + visato.app
+  const footerBlock = (padH = 40) => (
     <div style={{
-      flexShrink: 0, padding: `18px ${padH}px`, background: D.bg,
-      borderTop: `1px solid ${D.dim20}`,
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      flex: 1, padding: `20px ${padH}px 32px`,
+      borderTop: `1px solid ${L.border}`,
+      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 6,
     }}>
-      <span style={{ fontSize: 13, color: D.gray, fontStyle: 'italic' }}>
-        {displayName ? `— ${displayName}` : ''}
-      </span>
-      <span style={{ fontSize: 13, color: D.gray, fontWeight: 500 }}>{cardDate}</span>
+      {displayName && (
+        <div style={{ fontSize: 15, color: L.dark, fontWeight: 500 }}>
+          {displayName}
+        </div>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 13, color: L.gray }}>{cardDate}</span>
+        <span style={{ fontSize: 13, color: L.gray, fontWeight: 600, letterSpacing: '0.04em' }}>
+          visato.app
+        </span>
+      </div>
     </div>
   )
 
-  // ── Card inner per format ─────────────────────────────────────────────
+  // ── Card layouts ──────────────────────────────────────────────────────
   let cardInner: React.ReactNode
 
-  if (format === '9:16') {
-    const mapH = Math.round(h * 0.45) // ~864px
-
-    const mrz = displayName
-      ? `VISATO<<<${displayName.toUpperCase().replace(/\s+/g, '<')}<<<<<<<<<<<<VISATO.APP<<`
-      : `VISATO<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<VISATO.APP<<`
-
+  if (format === '4:5') {
+    // 1080×1350: brandBar + headline + map(680) + stats + footer(flex:1)
     cardInner = (
       <>
-        {/* Mint ticker strip */}
-        <div style={{
-          width: w, height: 60, background: D.tickerBg, flexShrink: 0,
-          display: 'flex', alignItems: 'center', overflow: 'hidden',
-        }}>
-          <div style={{
-            fontSize: 22, fontWeight: 900, color: D.tickerTxt,
-            textTransform: 'uppercase', letterSpacing: '3px',
-            whiteSpace: 'nowrap', paddingLeft: 24,
-          }}>
-            {TICKER_TEXT}
-          </div>
-        </div>
-
-        {header(48, 22)}
-
-        {map(mapH, 185)}
-
-        {/* Flags row — only if user has visited countries */}
-        {flagList.length > 0 && (
-          <div style={{ flexShrink: 0, background: D.bg }}>
-            <div style={{ height: 1, background: D.dim30 }} />
-            <div style={{ padding: '20px 32px', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>
-              {flagList.map((flag, i) => (
-                <span key={i} style={{ fontSize: 30, lineHeight: 1 }}>{flag}</span>
-              ))}
-            </div>
-            <div style={{ height: 1, background: D.dim30 }} />
-          </div>
-        )}
-
-        {/* 2×2 stats grid */}
-        <div style={{ flexShrink: 0, padding: '36px 48px', background: D.bg }}>
-          {/* Row 1 */}
-          <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: D.mint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: 12 }}>
-                {str.countries}
-              </div>
-              <div style={{ fontSize: 72, fontWeight: 900, color: D.white, lineHeight: 1, letterSpacing: '-0.04em' }}>
-                {uniqueCountries}
-              </div>
-            </div>
-            <div style={{ width: 1, background: D.dim20, alignSelf: 'stretch', margin: '0 24px' }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: D.mint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: 12 }}>
-                {str.days}
-              </div>
-              <div style={{ fontSize: 72, fontWeight: 900, color: D.white, lineHeight: 1, letterSpacing: '-0.04em' }}>
-                {totalDays}
-              </div>
-            </div>
-          </div>
-          <div style={{ height: 1, background: D.dim20, margin: '24px 0' }} />
-          {/* Row 2 */}
-          <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: D.mint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: 12 }}>
-                {str.trips}
-              </div>
-              <div style={{ fontSize: 72, fontWeight: 900, color: D.white, lineHeight: 1, letterSpacing: '-0.04em' }}>
-                {trips.length}
-              </div>
-            </div>
-            <div style={{ width: 1, background: D.dim20, alignSelf: 'stretch', margin: '0 24px' }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: D.mint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: 12 }}>
-                {str.year}
-              </div>
-              <div style={{ fontSize: 72, fontWeight: 900, color: D.white, lineHeight: 1, letterSpacing: '-0.04em' }}>
-                {currentYear}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* User / branding footer */}
-        <div style={{
-          flex: 1, background: D.bg,
-          borderTop: `1px solid ${D.dim20}`,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: '28px 48px',
-        }}>
-          {displayName && (
-            <div style={{ fontSize: 22, color: D.white, fontWeight: 500, marginBottom: 14, textAlign: 'center' }}>
-              {displayName}
-            </div>
-          )}
-          <div style={{
-            fontSize: 14, color: D.mint,
-            fontFamily: '"Courier New", Courier, monospace',
-            opacity: 0.6, letterSpacing: '1px', textAlign: 'center',
-            maxWidth: w - 96, overflow: 'hidden', whiteSpace: 'nowrap',
-          }}>
-            {mrz.slice(0, 48)}
-          </div>
-          <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 22, lineHeight: 1 }}>🌍</span>
-            <span style={{ fontSize: 20, fontWeight: 900, color: D.white, letterSpacing: '-0.02em' }}>Visato</span>
-          </div>
-        </div>
+        {brandBar(40)}
+        {headlineBlock(40, 48)}
+        {mapBlock(680, 165)}
+        {statsBlock(40, 72, 44)}
+        {footerBlock(40)}
       </>
     )
 
-  } else if (format === '16:9') {
-    const mapW = Math.round(w * 0.62)
+  } else if (format === '9:16') {
+    // 1080×1920: brandBar + headline + map(1050) + stats + footer(flex:1)
     cardInner = (
-      <div style={{ display: 'flex', height: h, background: D.bg }}>
-        {map(h, 130, mapW)}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: `1px solid ${D.dim20}` }}>
-          {header(36, 18)}
-          {rule()}
-          <div style={{ flex: 1, padding: '28px 36px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 22 }}>
-            {[
-              { n: uniqueCountries, label: str.countries },
-              { n: totalDays,       label: str.days      },
-              { n: trips.length,    label: str.trips     },
-            ].map((item, i) => (
-              <div key={i}>
-                <div style={{ fontSize: 11, color: D.mint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: 8 }}>
-                  {item.label}
-                </div>
-                <div style={{ fontSize: 48, fontWeight: 900, color: D.white, lineHeight: 1, letterSpacing: '-0.03em' }}>
-                  {item.n}
-                </div>
-              </div>
-            ))}
-          </div>
-          {rule()}
-          <div style={{ padding: '14px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: D.gray, fontStyle: 'italic' }}>
-              {displayName ? `— ${displayName}` : ''}
-            </span>
-            <span style={{ fontSize: 12, color: D.gray }}>{cardDate}</span>
-          </div>
-        </div>
-      </div>
+      <>
+        {brandBar(44)}
+        {headlineBlock(44, 54)}
+        {mapBlock(1050, 185)}
+        {statsBlock(44, 80, 48)}
+        {footerBlock(44)}
+      </>
     )
 
   } else if (format === '1:1') {
+    // 1080×1080: brandBar + headline + map(380) + stats + footer(flex:1)
     cardInner = (
       <>
-        {header()}
-        {rule()}
-        {map(Math.round(h * 0.52), 155)}
-        {statRow(46, 28, 52, 44)}
-        {footer()}
+        {brandBar(40)}
+        {headlineBlock(40, 38)}
+        {mapBlock(380, 145)}
+        {statsBlock(40, 60, 36)}
+        {footerBlock(40)}
       </>
     )
 
   } else {
-    // 4:5
+    // 16:9 (1200×675): map left column 58% | brand+headline+stats right 42%
+    const mapColW = Math.round(w * 0.58) // 696px
+    const innerMapW = mapColW - 0  // full width in this column (no extra padding)
     cardInner = (
-      <>
-        {header()}
-        {rule()}
-        {map(Math.round(h * 0.50), 165)}
-        {statRow(54, 40, 52, 48)}
-        {footer()}
-      </>
+      <div style={{ display: 'flex', height: h }}>
+        {/* Left: full-height map */}
+        <div style={{ width: mapColW, flexShrink: 0, overflow: 'hidden', borderRight: `1px solid ${L.border}` }}>
+          {renderMap && topoData ? (
+            <ComposableMap
+              width={innerMapW} height={h}
+              projectionConfig={{ scale: 125, center: [10, 8] }}
+              style={{ display: 'block', width: innerMapW, height: h, background: L.mapBg }}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              {...({} as any)}
+            >
+              <Geographies geography={topoData as Record<string, unknown>}>
+                {({ geographies }) =>
+                  geographies
+                    .filter(geo => String(geo.id) !== '10')
+                    .map(geo => {
+                      const slug = geoFeatureSlug(geo.id, geo.properties as Record<string, unknown>)
+                      const isVisited = !!slug && visitedSlugs.has(slug)
+                      return (
+                        <Geography
+                          key={geo.rsmKey} geography={geo}
+                          fill={isVisited ? L.visited : L.unvisited}
+                          stroke={L.bg} strokeWidth={0.5}
+                          style={{ default: { outline: 'none' }, hover: { outline: 'none' }, pressed: { outline: 'none' } }}
+                        />
+                      )
+                    })
+                }
+              </Geographies>
+            </ComposableMap>
+          ) : (
+            <div style={{ width: mapColW, height: h, background: L.unvisited }} />
+          )}
+        </div>
+
+        {/* Right: brand + headline + stats + footer */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {brandBar(32)}
+          {headlineBlock(32, 34)}
+          {statsBlock(32, 52, 28)}
+          {footerBlock(32)}
+        </div>
+      </div>
     )
   }
 
-  // ── Modal UI style helpers ───────────────────────────────────────────
+  // ── Modal UI ──────────────────────────────────────────────────────────
   const pillStyle = (active: boolean): React.CSSProperties => ({
     padding: '5px 14px', borderRadius: 999,
     border: active ? 'none' : '1.5px solid var(--color-border)',
@@ -463,13 +444,15 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
 
   return (
     <>
-      {/* ── Off-screen share card (ComposableMap only renders after Generate) ── */}
+      {/* ── Off-screen share card ─────────────────────────────────────── */}
       <div
         ref={cardRef}
         style={{
           position: 'fixed', left: -9999, top: -9999,
           width: w, height: h,
-          background: D.bg,
+          background: L.bg,
+          border: `1px solid ${L.border}`,
+          borderRadius: 24,
           fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
@@ -521,7 +504,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             >✕</button>
           </div>
 
-          {/* ── Settings (shown first on open) ────────────────────────── */}
+          {/* ── Settings ──────────────────────────────────────────────── */}
           {stage === 'settings' && (
             <div>
               <div style={{ marginBottom: '1.125rem' }}>
@@ -566,7 +549,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             </div>
           )}
 
-          {/* ── Generating spinner ─────────────────────────────────────── */}
+          {/* ── Generating spinner ────────────────────────────────────── */}
           {stage === 'generating' && (
             <div style={{
               width: '100%', aspectRatio: `${w} / ${h}`, maxHeight: '55vh',
@@ -625,16 +608,12 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
                   ← {t('share.back')}
                 </button>
                 <div style={{ display: 'flex', gap: '0.625rem' }}>
-                  <button
-                    onClick={download} disabled={stage !== 'done'}
-                    style={{ ...actionBtn(stage === 'done'), border: '1.5px solid #2DBF8A', background: 'transparent', color: '#2DBF8A' }}
-                  >
+                  <button onClick={download} disabled={stage !== 'done'}
+                    style={{ ...actionBtn(stage === 'done'), border: '1.5px solid #2DBF8A', background: 'transparent', color: '#2DBF8A' }}>
                     {t('share.download')}
                   </button>
-                  <button
-                    onClick={copy} disabled={stage !== 'done'}
-                    style={{ ...actionBtn(stage === 'done'), border: 'none', background: '#2DBF8A', color: '#fff' }}
-                  >
+                  <button onClick={copy} disabled={stage !== 'done'}
+                    style={{ ...actionBtn(stage === 'done'), border: 'none', background: '#2DBF8A', color: '#fff' }}>
                     {copied ? t('share.copied') : t('share.copy')}
                   </button>
                 </div>
