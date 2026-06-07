@@ -613,25 +613,7 @@ export default function MapPage({ trips, user }: Props) {
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: panelHeading, letterSpacing: '-0.01em' }}>
               {t('map.myMap')}
             </h2>
-            <button
-              onClick={() => setShareOpen(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 10px', borderRadius: 8,
-                border: '1.5px solid #2DBF8A', background: 'transparent',
-                color: '#2DBF8A', fontSize: 12, fontWeight: 600,
-                cursor: 'pointer', whiteSpace: 'nowrap',
-                fontFamily: 'Inter, system-ui, sans-serif',
-              }}
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-              </svg>
-              {t('share.button')}
-            </button>
+            {/* Share button hidden temporarily — ShareModal.tsx preserved */}
           </div>
 
           {/* Stats — 3-column grid with equal widths */}
