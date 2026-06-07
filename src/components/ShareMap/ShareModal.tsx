@@ -272,7 +272,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       </div>
 
       {/* 3 — Stats row */}
-      <div style={{ display: 'flex', alignItems: 'stretch', gap: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', paddingLeft: 0 }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <span style={{ fontSize: V_NUM, fontWeight: 900, color: '#2DBF8A', lineHeight: 0.85, letterSpacing: '-0.05em' }}>
@@ -284,14 +284,14 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             {str.countriesLine1} {str.countriesLine2}
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0, marginRight: -72 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0 }}>
           {([
             { value: totalDays,    l1: str.daysLine1,  l2: str.daysLine2  },
             { value: trips.length, l1: str.tripsLine1, l2: str.tripsLine2 },
           ] as { value: number; l1: string; l2: string }[]).map(({ value, l1, l2 }) => (
             <div key={l1} style={{
               background: '#F0FAF6', borderRadius: '36px 0 0 36px',
-              padding: '24px 104px 24px 36px', textAlign: 'right' as const,
+              padding: '24px 72px 24px 36px', textAlign: 'right' as const,
               minWidth: 280,
             }}>
               <div style={{ fontSize: V_CARD_N, fontWeight: 800, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</div>
