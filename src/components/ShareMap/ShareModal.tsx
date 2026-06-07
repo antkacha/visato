@@ -83,7 +83,7 @@ function ShareMap({
               return (
                 <Geography
                   key={geo.rsmKey} geography={geo}
-                  fill={isVisited ? '#2DBF8A' : '#C8CCD6'}
+                  fill={isVisited ? '#2DBF8A' : '#C8CDD5'}
                   stroke="#FFFFFF" strokeWidth={0.5}
                   style={{ default: { outline: 'none' }, hover: { outline: 'none' }, pressed: { outline: 'none' } }}
                 />
@@ -200,7 +200,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         {value}
       </span>
       <div style={{
-        fontSize: labelFont, color: '#1A7A59', fontWeight: 700,
+        fontSize: labelFont, color: '#6B7280', fontWeight: 700,
         textTransform: 'uppercase' as const, letterSpacing: '2px', lineHeight: 1.35,
       }}>
         <div>{line1}</div>
@@ -229,28 +229,30 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   // ─────────────────────────────────────────────────────────────────────────
 
   // padH=68 → innerW = 1080-136 = 944
-  const V_MAP_H  = 620
+  // padV=90 → innerH = 1920-180 = 1740
+  // Content heights: header~50 + map~820 + stats~296 + chips~180 + footer~58 = 1404
+  // 4 gaps = 1740-1404 = 336 → ~84px each ✓
+  const V_MAP_H  = 820   // fills space so gaps ≈ 84px with space-between
   const V_MAP_W  = 944
-  const V_NUM    = 200   // big country number font-size
-  const V_SLASH  = 60    // /195 font-size
-  const V_LBL    = 19    // "COUNTRIES VISITED" font-size
-  const V_CARD_N = 80    // mini-card number font-size
-  const V_CARD_L = 15    // mini-card label font-size
-  const V_CARD_W = 322   // mini-card width
-  const V_CHIP_F = 28    // chip flag px
-  const V_CHIP_N = 21    // chip name px
-  const V_CHIP_H = 12    // chip padV
-  const V_CHIP_W = 18    // chip padH
-  const V_CHIP_G = 12    // chip gap
-  // 3 rows: 3 × (2×12 + 28) + 2×12 = 3×52 + 24 = 180
-  const V_CHIP_MAX_H = 180
+  const V_NUM    = 192   // big country number (≈96px × 2× canvas scale)
+  const V_SLASH  = 52    // /195 font-size (≈28px × 2×)
+  const V_LBL    = 18    // "COUNTRIES VISITED" (≈10px × 2×), letterSpacing 3.5px
+  const V_CARD_N = 88    // mini-card number (≈48px × 2×) — card h = 2×26+88 = 140
+  const V_CARD_L = 16    // mini-card label (≈10px × 2×)
+  const V_CARD_W = 300   // mini-card width
+  const V_CHIP_F = 24    // chip flag px
+  const V_CHIP_N = 19    // chip name px
+  const V_CHIP_H = 10    // chip padV → chip height = 2×10+24 = 44
+  const V_CHIP_W = 16    // chip padH
+  const V_CHIP_G = 10    // chip gap → 3 rows: 3×44 + 2×10 = 152
+  const V_CHIP_MAX_H = 156
 
   const vertCard = (
     <div style={{
       width: 1080, height: 1920,
       background: '#FFFFFF',
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      padding: '90px 68px 90px',
+      padding: '80px 68px 80px',
       boxSizing: 'border-box',
       fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
     }}>
@@ -274,7 +276,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         {renderMap && topoData
           ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs}
               width={V_MAP_W} height={V_MAP_H} scale={148} />
-          : <div style={{ width: V_MAP_W, height: V_MAP_H, background: '#C8CCD6' }} />
+          : <div style={{ width: V_MAP_W, height: V_MAP_H, background: '#C8CDD5' }} />
         }
       </div>
 
@@ -310,7 +312,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             </div>
             <div style={{
               fontSize: V_LBL, fontWeight: 700, color: '#6B7280',
-              textTransform: 'uppercase' as const, letterSpacing: '3px',
+              textTransform: 'uppercase' as const, letterSpacing: '3.5px',
               lineHeight: 1.4, marginTop: 6,
             }}>
               <div>{str.countriesLine1}</div>
@@ -321,8 +323,8 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
 
         {/* Right: two mini-cards (horizontal layout: number left, label right) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: V_CARD_W, flexShrink: 0 }}>
-          {miniCard(totalDays,    str.daysLine1,  str.daysLine2,  V_CARD_N, V_CARD_L, 28, 26, 20)}
-          {miniCard(trips.length, str.tripsLine1, str.tripsLine2, V_CARD_N, V_CARD_L, 28, 26, 20)}
+          {miniCard(totalDays,    str.daysLine1,  str.daysLine2,  V_CARD_N, V_CARD_L, 26, 26, 18)}
+          {miniCard(trips.length, str.tripsLine1, str.tripsLine2, V_CARD_N, V_CARD_L, 26, 26, 18)}
         </div>
       </div>
 
@@ -380,7 +382,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         {renderMap && topoData
           ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs}
               width={H_MAP_W} height={675} scale={112} />
-          : <div style={{ width: H_MAP_W, height: 675, background: '#C8CCD6' }} />
+          : <div style={{ width: H_MAP_W, height: 675, background: '#C8CDD5' }} />
         }
       </div>
 
