@@ -568,16 +568,8 @@ export default function MapPage({ trips, user }: Props) {
   const inactiveClr = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)'
   const panelBg     = theme === 'dark' ? '#0c1424' : '#FFFFFF'
   const panelBorder = theme === 'dark' ? 'rgba(255,255,255,0.08)' : '#E5E7EB'
-  const panelHeading = theme === 'dark' ? '#f1f5f9' : '#111827'
+  const panelHeading = theme === 'dark' ? '#f1f5f9' : '#1F2937'
   const panelMuted   = theme === 'dark' ? '#94a3b8' : '#6B7280'
-
-  const toggleContinentExpand = (key: string) => {
-    setExpandedContinents(prev => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key); else next.add(key)
-      return next
-    })
-  }
 
   const zoomBtnStyle: React.CSSProperties = {
     width: 34, height: 34, borderRadius: 8, border: 'none',
@@ -602,22 +594,24 @@ export default function MapPage({ trips, user }: Props) {
     >
       {/* ── LEFT PANEL ──────────────────────────────────────────────── */}
       <div style={{
-        width: isMobile ? '100%' : '280px',
+        width: isMobile ? '100%' : '300px',
+        minWidth: isMobile ? undefined : '300px',
         height: isMobile ? 'auto' : '100%',
-        maxHeight: isMobile ? '45dvh' : undefined,
+        maxHeight: isMobile ? '50dvh' : undefined,
         flexShrink: 0,
         display: 'flex', flexDirection: 'column',
         background: panelBg,
         borderRight: isMobile ? 'none' : `1px solid ${panelBorder}`,
         borderBottom: isMobile ? `1px solid ${panelBorder}` : 'none',
         overflowY: 'auto',
+        scrollBehavior: 'smooth',
         fontFamily: 'Inter, system-ui, sans-serif',
       }}>
-        {/* Panel header */}
-        <div style={{ padding: '20px 20px 0', flexShrink: 0 }}>
+        {/* ── Fixed header (non-scrolling) ────────────────────────── */}
+        <div style={{ padding: '24px 24px 16px', flexShrink: 0 }}>
           {/* Title + Share */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: panelHeading, letterSpacing: '-0.01em' }}>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: panelHeading, letterSpacing: '-0.01em' }}>
               {t('map.myMap')}
             </h2>
             <button
@@ -641,63 +635,43 @@ export default function MapPage({ trips, user }: Props) {
             </button>
           </div>
 
-          {/* Stats row */}
-          <div style={{ display: 'flex', gap: 20, marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 30, fontWeight: 800, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.03em' }}>
-                {uniqueCountries.length}
+          {/* Stats — 3-column grid with equal widths */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+            gap: 0, marginBottom: 16,
+            background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
+            borderRadius: 12, border: `1px solid ${panelBorder}`,
+            overflow: 'hidden',
+          }}>
+            {[
+              { value: uniqueCountries.length, label: t('map.countriesStat') },
+              { value: visitedContinents,      label: t('map.continentsStat') },
+              { value: totalDays,              label: t('map.daysStat') },
+            ].map((s, i) => (
+              <div key={i} style={{
+                padding: '14px 8px', textAlign: 'center',
+                borderRight: i < 2 ? `1px solid ${panelBorder}` : 'none',
+              }}>
+                <div style={{
+                  fontSize: 26, fontWeight: 800, color: '#2DBF8A',
+                  lineHeight: 1, letterSpacing: '-0.03em',
+                }}>
+                  {s.value}
+                </div>
+                <div style={{
+                  fontSize: 10, color: panelMuted, fontWeight: 600,
+                  textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 5,
+                  lineHeight: 1.2,
+                }}>
+                  {s.label}
+                </div>
               </div>
-              <div style={{ fontSize: 11, color: panelMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: 4 }}>
-                {t('map.countriesStat')}
-              </div>
-            </div>
-            <div style={{ width: 1, background: panelBorder, alignSelf: 'stretch' }} />
-            <div>
-              <div style={{ fontSize: 30, fontWeight: 800, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.03em' }}>
-                {visitedContinents}
-              </div>
-              <div style={{ fontSize: 11, color: panelMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: 4 }}>
-                {t('map.continentsStat')}
-              </div>
-            </div>
-            <div style={{ width: 1, background: panelBorder, alignSelf: 'stretch' }} />
-            <div>
-              <div style={{ fontSize: 30, fontWeight: 800, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.03em' }}>
-                {totalDays}
-              </div>
-              <div style={{ fontSize: 11, color: panelMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: 4 }}>
-                {t('map.daysStat')}
-              </div>
-            </div>
+            ))}
           </div>
-
-          {/* View mode toggle */}
-          <div style={{ display: 'flex', background: toggleBg, borderRadius: 999, padding: 3, marginBottom: 16 }}>
-            {(['globe', 'map'] as ViewMode[]).map(mode => {
-              const isActive = viewMode === mode
-              return (
-                <motion.button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  animate={{ backgroundColor: isActive ? '#2DBF8A' : 'rgba(0,0,0,0)', color: isActive ? '#fff' : inactiveClr }}
-                  transition={{ duration: 0.22, ease: 'easeInOut' }}
-                  style={{
-                    flex: 1, border: 'none', borderRadius: 999, padding: '6px 12px',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    fontFamily: 'Inter, system-ui, sans-serif', whiteSpace: 'nowrap', lineHeight: 1.4,
-                  }}
-                >
-                  {mode === 'globe' ? `🌍 ${t('map.view3d')}` : `🗺️ ${t('map.view2d')}`}
-                </motion.button>
-              )
-            })}
-          </div>
-
-          <div style={{ height: 1, background: panelBorder, marginBottom: 16 }} />
         </div>
 
-        {/* Countries by continent — scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
+        {/* ── Scrollable countries list ─────────────────────────────── */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
           {trips.length === 0 ? (
             <p style={{ fontSize: 13, color: panelMuted, margin: 0 }}>
               {t('map.noVisited')}
@@ -706,53 +680,55 @@ export default function MapPage({ trips, user }: Props) {
             Object.entries(CONTINENT_COUNTRIES).map(([continentKey, allSlugs]) => {
               const visited = allSlugs.filter(s => visitedSlugs.has(s))
               if (visited.length === 0) return null
-              const isExpanded = expandedContinents.has(continentKey)
               return (
-                <div key={continentKey} style={{ marginBottom: 12 }}>
-                  {/* Continent header — clickable */}
-                  <button
-                    onClick={() => toggleContinentExpand(continentKey)}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      width: '100%', padding: '8px 0', background: 'transparent', border: 'none',
-                      cursor: 'pointer', textAlign: 'left',
-                    }}
-                  >
-                    <span style={{ fontSize: 13, fontWeight: 700, color: panelHeading, fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <div
+                  key={continentKey}
+                  style={{
+                    marginBottom: 10,
+                    background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
+                    borderRadius: 12, border: `1px solid ${panelBorder}`,
+                    padding: '14px 14px 12px',
+                    boxShadow: theme === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.04)',
+                  }}
+                >
+                  {/* Continent header */}
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: panelHeading }}>
                       {t(`continents.${continentKey}`)}
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 11, color: panelMuted, fontWeight: 500 }}>
-                        {visited.length}/{allSlugs.length}
-                      </span>
-                      <span style={{ fontSize: 10, color: panelMuted }}>
-                        {isExpanded ? '▾' : '▸'}
-                      </span>
-                    </span>
-                  </button>
-
-                  {/* Expanded country chips */}
-                  {isExpanded && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingBottom: 4 }}>
-                      {visited.map(slug => (
-                        <div
-                          key={slug}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 5,
-                            padding: '4px 9px', borderRadius: 999,
-                            background: 'rgba(45,191,138,0.10)',
-                            border: '1px solid rgba(45,191,138,0.25)',
-                            fontSize: 12, color: theme === 'dark' ? '#2DBF8A' : '#1A7A59',
-                            fontWeight: 500, fontFamily: 'Inter, system-ui, sans-serif',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          <span style={{ fontSize: 14, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
-                          <span>{t(`countries.${slug}`, { defaultValue: slug })}</span>
-                        </div>
-                      ))}
                     </div>
-                  )}
+                    <div style={{ fontSize: 12, color: panelMuted, marginTop: 2 }}>
+                      {visited.length}/{allSlugs.length} {t('map.countriesStat').toLowerCase()}
+                    </div>
+                  </div>
+                  {/* 2-column chip grid — always expanded */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5,
+                  }}>
+                    {visited.map(slug => (
+                      <div
+                        key={slug}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          padding: '5px 8px', borderRadius: 20,
+                          background: theme === 'dark' ? 'rgba(45,191,138,0.12)' : '#E8F5F0',
+                          border: theme === 'dark' ? '1px solid rgba(45,191,138,0.25)' : '1px solid rgba(26,122,89,0.2)',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <span style={{ fontSize: 13, lineHeight: 1, flexShrink: 0 }}>
+                          {COUNTRY_FLAGS[slug] ?? '🏳️'}
+                        </span>
+                        <span style={{
+                          fontSize: 11, fontWeight: 500,
+                          color: theme === 'dark' ? '#2DBF8A' : '#1A7A59',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          fontFamily: 'Inter, system-ui, sans-serif',
+                        }}>
+                          {t(`countries.${slug}`, { defaultValue: slug })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )
             })
@@ -765,6 +741,38 @@ export default function MapPage({ trips, user }: Props) {
         ref={containerRef}
         style={{ flex: 1, overflow: 'hidden', position: 'relative', background: colors.bg }}
       >
+        {/* Floating view toggle — top-center of map area */}
+        <div style={{
+          position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 10, display: 'flex',
+        }}>
+          <div style={{
+            display: 'flex', background: toggleBg,
+            borderRadius: 999, padding: 3, gap: 2,
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+          }}>
+            {(['globe', 'map'] as ViewMode[]).map(mode => {
+              const isActive = viewMode === mode
+              return (
+                <motion.button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  animate={{ backgroundColor: isActive ? '#2DBF8A' : 'rgba(0,0,0,0)', color: isActive ? '#fff' : inactiveClr }}
+                  transition={{ duration: 0.22, ease: 'easeInOut' }}
+                  style={{
+                    border: 'none', borderRadius: 999, padding: '6px 16px',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    fontFamily: 'Inter, system-ui, sans-serif', whiteSpace: 'nowrap', lineHeight: 1.4,
+                  }}
+                >
+                  {mode === 'globe' ? `🌍 ${t('map.view3d')}` : `🗺️ ${t('map.view2d')}`}
+                </motion.button>
+              )
+            })}
+          </div>
+        </div>
+
 
         {/* 3D Globe — always mounted to avoid WebGL teardown */}
         {countries.length > 0 ? (
