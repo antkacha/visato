@@ -371,8 +371,8 @@ export default function ProfilePage({ user, trips }: Props) {
                   onClick={() => navigate('/achievements')}
                   title={t(`achievements.${a.id}.name`)}
                   style={{
-                    background: a.unlocked ? colors.bg : 'var(--color-bg)',
-                    border: `1px solid ${a.unlocked ? colors.bg : 'var(--color-border)'}`,
+                    background: a.unlocked ? `${colors.accent}22` : 'var(--color-bg)',
+                    border: `1px solid ${a.unlocked ? `${colors.accent}55` : 'var(--color-border)'}`,
                     borderRadius: '0.75rem',
                     padding: '0.625rem 0.25rem',
                     cursor: 'pointer',

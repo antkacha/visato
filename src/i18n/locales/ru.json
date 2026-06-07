@@ -1,5 +1,8 @@
 {
   "appName": "Visato",
+  "common": {
+    "back": "Назад"
+  },
   "dashboard": {
     "daysUsed": "Использовано дней",
     "daysRemaining": "Осталось дней",

@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TripEntry } from '../types'
 import { getAchievements, type EvaluatedAchievement } from '../utils/achievementUtils'
@@ -12,19 +14,21 @@ function AchievementCard({ a }: { a: EvaluatedAchievement }) {
   const { t } = useTranslation()
   const colors = ACHIEVEMENT_COLORS[a.color]
 
-  const cardBg      = a.unlocked ? colors.bg : 'var(--color-surface)'
-  const emojiOpacity = a.unlocked ? 1 : 0.35
+  // Use accent color at low opacity so tint adapts to both light and dark backgrounds
+  const unlockedBg     = `${colors.accent}22`
+  const unlockedBorder = `${colors.accent}55`
+  const emojiOpacity   = a.unlocked ? 1 : 0.3
 
   return (
     <div style={{
-      background: cardBg,
-      border: `1px solid ${a.unlocked ? colors.bg : 'var(--color-border)'}`,
+      background: a.unlocked ? unlockedBg : 'var(--color-surface)',
+      border: `1px solid ${a.unlocked ? unlockedBorder : 'var(--color-border)'}`,
       borderRadius: '1rem',
       padding: '1.25rem 1rem',
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       textAlign: 'center', gap: '0.5rem',
       transition: 'box-shadow 0.15s ease',
-      boxShadow: a.unlocked ? `0 2px 12px ${colors.bg}` : 'none',
+      boxShadow: a.unlocked ? `0 2px 16px ${colors.accent}25` : '0 1px 4px rgba(0,0,0,0.05)',
       position: 'relative', overflow: 'hidden',
     }}>
       {/* Emoji */}
@@ -57,7 +61,7 @@ function AchievementCard({ a }: { a: EvaluatedAchievement }) {
           display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
           padding: '0.2rem 0.6rem',
           borderRadius: '999px',
-          background: colors.accent + '22',
+          background: `${colors.accent}22`,
           color: colors.accent,
           fontSize: '0.6875rem', fontWeight: 700,
           marginTop: '0.25rem',
@@ -92,12 +96,47 @@ function AchievementCard({ a }: { a: EvaluatedAchievement }) {
 
 export default function AchievementsPage({ trips }: Props) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const achievements = useMemo(() => getAchievements(trips), [trips])
   const unlockedCount = achievements.filter((a) => a.unlocked).length
   const sorted = [...achievements].sort((a, b) => Number(b.unlocked) - Number(a.unlocked))
 
   return (
-    <div style={{ maxWidth: '52rem', margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      style={{ maxWidth: '52rem', margin: '0 auto', padding: '2rem 1.5rem 4rem' }}
+    >
+      {/* Back button */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <button
+          onClick={() => navigate('/profile')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+            background: 'transparent',
+            border: '1px solid var(--color-border)',
+            borderRadius: '0.5rem',
+            padding: '0.375rem 0.875rem',
+            color: 'var(--color-text-muted)',
+            fontSize: '0.8125rem', fontWeight: 500,
+            cursor: 'pointer',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            transition: 'border-color 0.15s, color 0.15s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#2DBF8A'
+            e.currentTarget.style.color = '#2DBF8A'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--color-border)'
+            e.currentTarget.style.color = 'var(--color-text-muted)'
+          }}
+        >
+          ← {t('common.back')}
+        </button>
+      </div>
+
       {/* Header */}
       <div style={{ marginBottom: '1.75rem' }}>
         <h1 style={{
@@ -120,6 +159,6 @@ export default function AchievementsPage({ trips }: Props) {
           <AchievementCard key={a.id} a={a} />
         ))}
       </div>
-    </div>
+    </motion.div>
   )
 }
