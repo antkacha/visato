@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { differenceInDays, parseISO } from 'date-fns'
 import type { User } from '@supabase/supabase-js'
 import type { TripEntry } from '../types'
 import { ALL_COUNTRIES, COUNTRY_FLAGS } from '../constants/countries'
 import { loadProfile, saveProfile } from '../utils/storage'
+import { getAchievements } from '../utils/achievementUtils'
+import { ACHIEVEMENT_COLORS } from '../constants/achievements'
 import { supabase } from '../lib/supabase'
 import { today } from '../utils/dateUtils'
 
@@ -33,6 +36,7 @@ function PlusIcon() {
 
 export default function ProfilePage({ user, trips }: Props) {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Form state
@@ -143,6 +147,13 @@ export default function ProfilePage({ user, trips }: Props) {
     const entries = Object.entries(by).sort(([, a], [, b]) => b - a)
     return entries[0] ?? null
   }, [trips])
+
+  const allAchievements = useMemo(() => getAchievements(trips), [trips])
+  const previewAchievements = useMemo(() => {
+    const sorted = [...allAchievements].sort((a, b) => Number(b.unlocked) - Number(a.unlocked))
+    return sorted.slice(0, 10)
+  }, [allAchievements])
+  const unlockedCount = useMemo(() => allAchievements.filter((a) => a.unlocked).length, [allAchievements])
 
   // ── Countries sorted by current locale ───────────────────────────────────
   const locale = i18n.language === 'uk' ? 'uk' : i18n.language === 'ru' ? 'ru' : 'en'
@@ -319,6 +330,70 @@ export default function ProfilePage({ user, trips }: Props) {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* ── Achievements preview ───────────────────────────────────────── */}
+        <div style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '1rem',
+          padding: '1.25rem 1.5rem',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <span style={{
+              display: 'inline-block',
+              fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-heading)',
+              paddingBottom: '0.5rem',
+              borderBottom: '2px solid #2DBF8A',
+            }}>
+              {t('achievements.title')}
+            </span>
+            <button
+              onClick={() => navigate('/achievements')}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: '0.8125rem', color: '#2DBF8A', fontWeight: 600,
+                padding: '0.25rem 0.5rem', borderRadius: '0.375rem',
+                fontFamily: 'Inter, system-ui, sans-serif',
+              }}
+            >
+              {t('achievements.seeAll')} ({unlockedCount}/17) →
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem' }}>
+            {previewAchievements.map((a) => {
+              const colors = ACHIEVEMENT_COLORS[a.color]
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => navigate('/achievements')}
+                  title={t(`achievements.${a.id}.name`)}
+                  style={{
+                    background: a.unlocked ? colors.bg : 'var(--color-bg)',
+                    border: `1px solid ${a.unlocked ? colors.bg : 'var(--color-border)'}`,
+                    borderRadius: '0.75rem',
+                    padding: '0.625rem 0.25rem',
+                    cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem',
+                    textAlign: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: '1.5rem', lineHeight: 1, opacity: a.unlocked ? 1 : 0.3 }}>
+                    {a.emoji}
+                  </span>
+                  <span style={{
+                    fontSize: '0.5625rem', fontWeight: 600, lineHeight: 1.2,
+                    color: a.unlocked ? 'var(--color-heading)' : 'var(--color-text-muted)',
+                    wordBreak: 'break-word',
+                  }}>
+                    {t(`achievements.${a.id}.name`)}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* ── Personal info form ─────────────────────────────────────────── */}
