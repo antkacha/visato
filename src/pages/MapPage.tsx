@@ -608,7 +608,7 @@ export default function MapPage({ trips, user }: Props) {
             onWheel={e => e.preventDefault()}
             onMouseEnter={() => {
               clearTimeout(globeResumeTimer.current)
-              try { (globeRef.current as any)?.controls().autoRotate = false } catch (_) {}
+              try { const g = globeRef.current as any; if (g) g.controls().autoRotate = false } catch (_) {}
             }}
             onMouseMove={e => {
               globeMouseRef.current = { x: e.clientX, y: e.clientY }
@@ -619,7 +619,7 @@ export default function MapPage({ trips, user }: Props) {
               setHoveredId(null)
               clearTimeout(globeResumeTimer.current)
               globeResumeTimer.current = setTimeout(() => {
-                try { (globeRef.current as any)?.controls().autoRotate = true } catch (_) {}
+                try { const g = globeRef.current as any; if (g) g.controls().autoRotate = true } catch (_) {}
               }, 2000)
             }}
           >
