@@ -272,9 +272,9 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       </div>
 
       {/* 3 — Stats row */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 36 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, lineHeight: 1 }}>
             <span style={{ fontSize: V_NUM, fontWeight: 900, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.05em' }}>
               {uniqueCountries}
             </span>
@@ -284,20 +284,20 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             {str.countriesLine1} {str.countriesLine2}
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flexShrink: 0, width: 240 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flexShrink: 0, width: 220 }}>
           {([
             { value: totalDays,    l1: str.daysLine1,  l2: str.daysLine2  },
             { value: trips.length, l1: str.tripsLine1, l2: str.tripsLine2 },
           ] as { value: number; l1: string; l2: string }[]).map(({ value, l1, l2 }) => (
             <div key={l1} style={{
               background: '#F0FAF6', borderRadius: 28,
-              padding: '28px 20px',
+              height: 180,
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
-              textAlign: 'center' as const,
+              textAlign: 'center' as const, gap: 12,
             }}>
               <div style={{ fontSize: V_CARD_N, fontWeight: 800, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</div>
-              <div style={{ fontSize: V_CARD_L, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase' as const, letterSpacing: '4px', lineHeight: 1.3, marginTop: 10, whiteSpace: 'nowrap' as const }}>
+              <div style={{ fontSize: V_CARD_L, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase' as const, letterSpacing: '4px', lineHeight: 1.3, whiteSpace: 'nowrap' as const }}>
                 {l1}{l2 && ` ${l2}`}
               </div>
             </div>
