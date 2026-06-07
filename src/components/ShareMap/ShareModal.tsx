@@ -167,7 +167,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
 
   // Centered "Visato" text flanked by horizontal rules
   const brandBar = (padH = 40) => (
-    <div style={{ padding: `32px ${padH}px 20px`, flexShrink: 0 }}>
+    <div style={{ padding: `40px ${padH}px 20px`, flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <div style={{ flex: 1, height: 1, background: L.border }} />
         <span style={{ fontSize: 20, fontWeight: 900, color: L.mint, letterSpacing: '-0.02em' }}>
@@ -180,7 +180,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
 
   // Two-line headline — second line has mint-colored last word
   const headlineBlock = (padH = 40, fontSize = 48) => (
-    <div style={{ padding: `0 ${padH}px 28px`, flexShrink: 0 }}>
+    <div style={{ padding: `0 ${padH}px 32px`, flexShrink: 0 }}>
       <div style={{
         fontSize, fontWeight: 900, color: L.dark,
         lineHeight: 1.15, letterSpacing: '-0.03em',
@@ -247,7 +247,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   const statsBlock = (padH = 40, numSize = 72, gap = 44) => {
     const of195Size = Math.round(numSize * 0.32)
     return (
-      <div style={{ padding: `32px ${padH}px 24px`, flexShrink: 0 }}>
+      <div style={{ padding: `32px ${padH}px 32px`, flexShrink: 0 }}>
         <div style={{ display: 'flex', gap, alignItems: 'flex-start' }}>
           {/* Countries */}
           <div>
@@ -307,9 +307,9 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   // Footer: name + date + visato.app
   const footerBlock = (padH = 40) => (
     <div style={{
-      flex: 1, padding: `20px ${padH}px 32px`,
+      padding: `24px ${padH}px 40px`,
       borderTop: `1px solid ${L.border}`,
-      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 6,
+      display: 'flex', flexDirection: 'column', gap: 6,
     }}>
       {displayName && (
         <div style={{ fontSize: 15, color: L.dark, fontWeight: 500 }}>
@@ -329,36 +329,36 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   let cardInner: React.ReactNode
 
   if (format === '4:5') {
-    // 1080×1350: brandBar + headline + map(680) + stats + footer(flex:1)
+    // 1080×1350: map = 45% = 608px; space-between fills remaining
     cardInner = (
       <>
         {brandBar(40)}
         {headlineBlock(40, 48)}
-        {mapBlock(680, 165)}
+        {mapBlock(Math.round(h * 0.45), 165)}
         {statsBlock(40, 72, 44)}
         {footerBlock(40)}
       </>
     )
 
   } else if (format === '9:16') {
-    // 1080×1920: brandBar + headline + map(1050) + stats + footer(flex:1)
+    // 1080×1920: map = 45% = 864px; space-between distributes gaps evenly
     cardInner = (
       <>
         {brandBar(44)}
         {headlineBlock(44, 54)}
-        {mapBlock(1050, 185)}
+        {mapBlock(Math.round(h * 0.45), 175)}
         {statsBlock(44, 80, 48)}
         {footerBlock(44)}
       </>
     )
 
   } else if (format === '1:1') {
-    // 1080×1080: brandBar + headline + map(380) + stats + footer(flex:1)
+    // 1080×1080: map = 45% = 486px
     cardInner = (
       <>
         {brandBar(40)}
         {headlineBlock(40, 38)}
-        {mapBlock(380, 145)}
+        {mapBlock(Math.round(h * 0.45), 155)}
         {statsBlock(40, 60, 36)}
         {footerBlock(40)}
       </>
@@ -456,6 +456,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
           fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
+          justifyContent: 'space-between',
           zIndex: -1,
         }}
       >
