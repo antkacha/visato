@@ -288,7 +288,7 @@ export default function ProfilePage({ user, trips }: Props) {
         </div>
 
         {/* ── Stats grid ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3" style={{ alignItems: 'stretch' }}>
           {statCards.map((s, i) => (
             <div key={i} style={{
               background: 'var(--color-surface)',
@@ -296,7 +296,6 @@ export default function ProfilePage({ user, trips }: Props) {
               borderRadius: '0.875rem',
               padding: '1rem 0.75rem',
               minHeight: 96,
-              height: '100%',
               boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
