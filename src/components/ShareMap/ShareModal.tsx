@@ -229,10 +229,9 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   // ─────────────────────────────────────────────────────────────────────────
 
   // padH=68 → innerW = 1080-136 = 944
-  // padV=90 → innerH = 1920-180 = 1740
-  // Content heights: header~50 + map~820 + stats~296 + chips~180 + footer~58 = 1404
-  // 4 gaps = 1740-1404 = 336 → ~84px each ✓
-  const V_MAP_H  = 820   // fills space so gaps ≈ 84px with space-between
+  // Simple top-to-bottom flex-start layout, fixed margins between sections.
+  // Footer uses marginTop:auto to anchor at bottom without space-between stretching gaps.
+  const V_MAP_H  = 380   // fixed height; world is centered in mint bg above/below
   const V_MAP_W  = 944
   const V_NUM    = 192   // big country number (≈96px × 2× canvas scale)
   const V_SLASH  = 52    // /195 font-size (≈28px × 2×)
@@ -251,14 +250,14 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
     <div style={{
       width: 1080, height: 1920,
       background: '#FFFFFF',
-      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      padding: '80px 68px 80px',
+      display: 'flex', flexDirection: 'column',
+      padding: '72px 68px 80px',
       boxSizing: 'border-box',
       fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
     }}>
 
       {/* 1 ── Visato + mint line ─────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 40 }}>
         <span style={{
           fontSize: 48, fontWeight: 900, color: '#2DBF8A',
           letterSpacing: '-0.02em', lineHeight: 1, flexShrink: 0,
@@ -270,8 +269,9 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
 
       {/* 2 ── World map ──────────────────────────────────────────── */}
       <div style={{
-        borderRadius: 24, overflow: 'hidden',
+        borderRadius: 20, overflow: 'hidden',
         background: '#F0FAF6', height: V_MAP_H, flexShrink: 0,
+        marginBottom: 40,
       }}>
         {renderMap && topoData
           ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs}
@@ -281,18 +281,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       </div>
 
       {/* 3 ── Stats ─────────────────────────────────────────────── */}
-      {/*
-          Left column:
-            [BIG_NUM]  [/195         ]
-                       [COUNTRIES    ]
-                       [VISITED      ]
-          Right column (flex-shrink: 0):
-            [ num | DAYS    ]
-            [     | ABROAD  ]
-            [ num | TRIPS   ]
-            [     | TAKEN   ]
-      */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 28, marginBottom: 36 }}>
 
         {/* Left: big number + /195 column */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 16 }}>
@@ -332,6 +321,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: V_CHIP_G,
         maxHeight: V_CHIP_MAX_H, overflow: 'hidden', alignContent: 'flex-start',
+        marginBottom: 32,
       }}>
         {visitedSlugsArr.map(slug => (
           <div key={slug} style={{
@@ -347,8 +337,8 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         ))}
       </div>
 
-      {/* 5 ── Footer: name + mint underline ──────────────────────── */}
-      <div>
+      {/* 5 ── Footer: name + mint underline — anchored to bottom ─── */}
+      <div style={{ marginTop: 'auto' }}>
         {displayName && (
           <>
             <div style={{ fontSize: 36, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>
