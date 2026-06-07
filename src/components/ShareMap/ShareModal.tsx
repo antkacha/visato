@@ -27,7 +27,6 @@ type FormatKey = '9:16' | '16:9'
 type CardLang  = 'en' | 'uk' | 'ru'
 type Stage     = 'settings' | 'generating' | 'done' | 'error'
 
-// Stories vertical 1080×1920, landscape horizontal 1200×675
 const FORMATS: Record<FormatKey, { w: number; h: number; label: string }> = {
   '9:16': { w: 1080, h: 1920, label: 'Stories'    },
   '16:9': { w: 1200, h: 675,  label: 'Horizontal' },
@@ -36,24 +35,41 @@ const FORMATS: Record<FormatKey, { w: number; h: number; label: string }> = {
 const FORMAT_KEYS: FormatKey[] = ['9:16', '16:9']
 const CARD_LANGS: CardLang[]   = ['en', 'uk', 'ru']
 
-const CARD_STR: Record<CardLang, { countriesLabel: string; daysLabel: string; tripsLabel: string }> = {
-  en: { countriesLabel: 'COUNTRIES VISITED', daysLabel: 'DAYS ABROAD',      tripsLabel: 'TRIPS TAKEN' },
-  uk: { countriesLabel: 'ВІДВІДАНО КРАЇН',   daysLabel: 'ДНІВ ЗА КОРДОНОМ', tripsLabel: 'ПОЇЗДОК'    },
-  ru: { countriesLabel: 'ПОСЕЩЕНО СТРАН',    daysLabel: 'ДНЕЙ ЗА РУБЕЖОМ',  tripsLabel: 'ПОЕЗДОК'    },
+// Two-word labels so they wrap cleanly inside horizontal mini-cards
+const CARD_STR: Record<CardLang, {
+  countriesLine1: string; countriesLine2: string
+  daysLine1: string;      daysLine2: string
+  tripsLine1: string;     tripsLine2: string
+}> = {
+  en: {
+    countriesLine1: 'COUNTRIES', countriesLine2: 'VISITED',
+    daysLine1: 'DAYS',           daysLine2: 'ABROAD',
+    tripsLine1: 'TRIPS',         tripsLine2: 'TAKEN',
+  },
+  uk: {
+    countriesLine1: 'ВІДВІДАНО', countriesLine2: 'КРАЇН',
+    daysLine1: 'ДНІВ',           daysLine2: 'ЗА КОРДОНОМ',
+    tripsLine1: 'ПОЇЗДОК',       tripsLine2: '',
+  },
+  ru: {
+    countriesLine1: 'ПОСЕЩЕНО',  countriesLine2: 'СТРАН',
+    daysLine1: 'ДНЕЙ',           daysLine2: 'ЗА РУБЕЖОМ',
+    tripsLine1: 'ПОЕЗДОК',       tripsLine2: '',
+  },
 }
 
 // ── Shared flat map ──────────────────────────────────────────────────────────
 function ShareMap({
-  topoData, visitedSlugs, width, height, scale, bg = '#F0FAF6',
+  topoData, visitedSlugs, width, height, scale,
 }: {
   topoData: unknown; visitedSlugs: Set<string>
-  width: number; height: number; scale: number; bg?: string
+  width: number; height: number; scale: number
 }) {
   return (
     <ComposableMap
       width={width} height={height}
       projectionConfig={{ scale, center: [10, 8] }}
-      style={{ display: 'block', width, height, background: bg }}
+      style={{ display: 'block', width, height, background: '#F0FAF6' }}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       {...({} as any)}
     >
@@ -67,7 +83,7 @@ function ShareMap({
               return (
                 <Geography
                   key={geo.rsmKey} geography={geo}
-                  fill={isVisited ? '#2DBF8A' : '#D1D5DB'}
+                  fill={isVisited ? '#2DBF8A' : '#C8CCD6'}
                   stroke="#FFFFFF" strokeWidth={0.5}
                   style={{ default: { outline: 'none' }, hover: { outline: 'none' }, pressed: { outline: 'none' } }}
                 />
@@ -160,145 +176,184 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   const { w, h } = FORMATS[format]
   const str = CARD_STR[cardLang]
 
+  // ── Mini-card (horizontal: big number left, two-line label right) ────────
+  // Used in both Stories and Horizontal layouts with different sizing.
+  const miniCard = (
+    value: number,
+    line1: string,
+    line2: string,
+    numFont: number,
+    labelFont: number,
+    padH: number,
+    padV: number,
+    radius: number,
+  ) => (
+    <div style={{
+      background: '#E8F5F0', borderRadius: radius,
+      padding: `${padV}px ${padH}px`,
+      display: 'flex', alignItems: 'center', gap: padH * 0.5,
+    }}>
+      <span style={{
+        fontSize: numFont, fontWeight: 900, color: '#2DBF8A',
+        lineHeight: 1, letterSpacing: '-0.04em', flexShrink: 0,
+      }}>
+        {value}
+      </span>
+      <div style={{
+        fontSize: labelFont, color: '#1A7A59', fontWeight: 700,
+        textTransform: 'uppercase' as const, letterSpacing: '2px', lineHeight: 1.35,
+      }}>
+        <div>{line1}</div>
+        {line2 && <div>{line2}</div>}
+      </div>
+    </div>
+  )
+
   // ─────────────────────────────────────────────────────────────────────────
   // VERTICAL — Stories 1080 × 1920
   //
-  // Proportions derived from the reference:
-  //   header  ≈ 2%   →  ~38px
-  //   gap     ≈ 6%   →  ~115px  (space-between distributes 4 gaps evenly)
-  //   map     ≈ 30%  →  ~576px
-  //   stats   ≈ 27%  →  ~518px  (big number + two side cards)
-  //   chips   ≈ 18%  →  ~346px  capped at 3 rows with overflow:hidden
-  //   name    ≈ 5%   →  ~96px
-  //   padding ≈ 12%  →  top 80px + bottom 80px
+  // Measured from reference (second screenshot, ~600×1100px display):
+  //   top pad   5%  →  96px
+  //   header    4%  →  77px   (actual font ~46px + line)
+  //   gap       8%  → 154px   (space-between distributes 4 gaps ≈ 110px each)
+  //   map      32%  → 614px   (1080-136px horiz pad = 944px inner, scale 148)
+  //   gap       8%
+  //   stats    24%  → 461px   (big num col + two horiz mini-cards)
+  //   gap       7%
+  //   chips    12%  → 230px   (3 rows max)
+  //   gap       5%
+  //   footer    4%  →  77px   (name + mint underline)
+  //   bot pad   5%  →  96px
+  //
+  //   justify-content:space-between fills the gaps automatically.
   // ─────────────────────────────────────────────────────────────────────────
-  const V = {
-    padV: 80,  // top / bottom padding
-    padH: 68,  // left / right padding  →  innerW = 1080 - 136 = 944px
-    mapH: 580,
-    mapScale: 152,
-    numFont: 192,   // big country count
-    slash195Font: 58,
-    labelFont: 18,
-    labelSpacing: '3.5px',
-    cardW: 342,     // right mini-card width
-    cardNumFont: 78,
-    cardLabelFont: 15,
-    chipFlagPx: 30,
-    chipNamePx: 22,
-    chipPadH: 20,
-    chipPadV: 11,
-    chipGap: 12,
-    chipMaxH: 186,  // 3 rows: 3×(11+30+11) + 2×12 = 3×52 + 24 = 180 ≈ 186
-    nameFont: 34,
-  } as const
 
-  const innerW = 1080 - V.padH * 2  // 944px
+  // padH=68 → innerW = 1080-136 = 944
+  const V_MAP_H  = 620
+  const V_MAP_W  = 944
+  const V_NUM    = 200   // big country number font-size
+  const V_SLASH  = 60    // /195 font-size
+  const V_LBL    = 19    // "COUNTRIES VISITED" font-size
+  const V_CARD_N = 80    // mini-card number font-size
+  const V_CARD_L = 15    // mini-card label font-size
+  const V_CARD_W = 322   // mini-card width
+  const V_CHIP_F = 28    // chip flag px
+  const V_CHIP_N = 21    // chip name px
+  const V_CHIP_H = 12    // chip padV
+  const V_CHIP_W = 18    // chip padH
+  const V_CHIP_G = 12    // chip gap
+  // 3 rows: 3 × (2×12 + 28) + 2×12 = 3×52 + 24 = 180
+  const V_CHIP_MAX_H = 180
 
   const vertCard = (
     <div style={{
       width: 1080, height: 1920,
       background: '#FFFFFF',
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      padding: `${V.padV}px ${V.padH}px`,
+      padding: '90px 68px 90px',
       boxSizing: 'border-box',
       fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
     }}>
 
-      {/* 1 ── Visato + mint line ──────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
+      {/* 1 ── Visato + mint line ─────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         <span style={{
-          fontSize: 46, fontWeight: 900, color: '#2DBF8A',
+          fontSize: 48, fontWeight: 900, color: '#2DBF8A',
           letterSpacing: '-0.02em', lineHeight: 1, flexShrink: 0,
         }}>
           Visato
         </span>
-        <div style={{ flex: 1, height: 3, background: '#2DBF8A', borderRadius: 2 }} />
+        <div style={{ flex: 1, height: 2.5, background: '#2DBF8A', borderRadius: 2 }} />
       </div>
 
-      {/* 2 ── World map ──────────────────────────────────────────────── */}
-      <div style={{ borderRadius: 20, overflow: 'hidden', background: '#F0FAF6', height: V.mapH, flexShrink: 0 }}>
+      {/* 2 ── World map ──────────────────────────────────────────── */}
+      <div style={{
+        borderRadius: 24, overflow: 'hidden',
+        background: '#F0FAF6', height: V_MAP_H, flexShrink: 0,
+      }}>
         {renderMap && topoData
-          ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs} width={innerW} height={V.mapH} scale={V.mapScale} />
-          : <div style={{ width: innerW, height: V.mapH, background: '#D1D5DB' }} />
+          ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs}
+              width={V_MAP_W} height={V_MAP_H} scale={148} />
+          : <div style={{ width: V_MAP_W, height: V_MAP_H, background: '#C8CCD6' }} />
         }
       </div>
 
-      {/* 3 ── Stats: big country number (left) + two cards (right) ───── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 28 }}>
+      {/* 3 ── Stats ─────────────────────────────────────────────── */}
+      {/*
+          Left column:
+            [BIG_NUM]  [/195         ]
+                       [COUNTRIES    ]
+                       [VISITED      ]
+          Right column (flex-shrink: 0):
+            [ num | DAYS    ]
+            [     | ABROAD  ]
+            [ num | TRIPS   ]
+            [     | TAKEN   ]
+      */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 28 }}>
 
-        {/* Left: huge number */}
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-            <span style={{
-              fontSize: V.numFont, fontWeight: 900, color: '#2DBF8A',
-              lineHeight: 0.88, letterSpacing: '-0.06em',
-            }}>
-              {uniqueCountries}
-            </span>
-            <span style={{ fontSize: V.slash195Font, color: '#6B7280', fontWeight: 600, lineHeight: 1 }}>
-              /195
-            </span>
-          </div>
-          <div style={{
-            fontSize: V.labelFont, color: '#6B7280', fontWeight: 700,
-            textTransform: 'uppercase' as const, letterSpacing: V.labelSpacing,
-            marginTop: 20, lineHeight: 1.3,
+        {/* Left: big number + /195 column */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 16 }}>
+          {/* The giant country count */}
+          <span style={{
+            fontSize: V_NUM, fontWeight: 900, color: '#2DBF8A',
+            lineHeight: 1, letterSpacing: '-0.06em', flexShrink: 0,
           }}>
-            {str.countriesLabel}
+            {uniqueCountries}
+          </span>
+          {/* Column: /195 + label */}
+          <div style={{ paddingBottom: 8 }}>
+            <div style={{
+              fontSize: V_SLASH, fontWeight: 700, color: '#6B7280', lineHeight: 1.1,
+            }}>
+              /195
+            </div>
+            <div style={{
+              fontSize: V_LBL, fontWeight: 700, color: '#6B7280',
+              textTransform: 'uppercase' as const, letterSpacing: '3px',
+              lineHeight: 1.4, marginTop: 6,
+            }}>
+              <div>{str.countriesLine1}</div>
+              <div>{str.countriesLine2}</div>
+            </div>
           </div>
         </div>
 
-        {/* Right: days + trips cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: V.cardW }}>
-          {[
-            { value: totalDays,    label: str.daysLabel  },
-            { value: trips.length, label: str.tripsLabel },
-          ].map(({ value, label }) => (
-            <div key={label} style={{ background: '#E8F5F0', borderRadius: 20, padding: '24px 28px' }}>
-              <div style={{
-                fontSize: V.cardNumFont, fontWeight: 900, color: '#2DBF8A',
-                lineHeight: 1, letterSpacing: '-0.04em',
-              }}>
-                {value}
-              </div>
-              <div style={{
-                fontSize: V.cardLabelFont, color: '#1A7A59', fontWeight: 700,
-                textTransform: 'uppercase' as const, letterSpacing: '2.5px',
-                marginTop: 10, lineHeight: 1.3,
-              }}>
-                {label}
-              </div>
-            </div>
-          ))}
+        {/* Right: two mini-cards (horizontal layout: number left, label right) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: V_CARD_W, flexShrink: 0 }}>
+          {miniCard(totalDays,    str.daysLine1,  str.daysLine2,  V_CARD_N, V_CARD_L, 28, 26, 20)}
+          {miniCard(trips.length, str.tripsLine1, str.tripsLine2, V_CARD_N, V_CARD_L, 28, 26, 20)}
         </div>
       </div>
 
-      {/* 4 ── Country chips — max 3 rows ─────────────────────────────── */}
+      {/* 4 ── Country chips — max 3 rows ─────────────────────────── */}
       <div style={{
-        display: 'flex', flexWrap: 'wrap', gap: V.chipGap,
-        maxHeight: V.chipMaxH, overflow: 'hidden', alignContent: 'flex-start',
+        display: 'flex', flexWrap: 'wrap', gap: V_CHIP_G,
+        maxHeight: V_CHIP_MAX_H, overflow: 'hidden', alignContent: 'flex-start',
       }}>
         {visitedSlugsArr.map(slug => (
           <div key={slug} style={{
-            display: 'flex', alignItems: 'center', gap: 9,
-            background: '#F3F4F6', borderRadius: 999,
-            padding: `${V.chipPadV}px ${V.chipPadH}px`, flexShrink: 0,
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: '#F0F1F3', borderRadius: 999,
+            padding: `${V_CHIP_H}px ${V_CHIP_W}px`, flexShrink: 0,
           }}>
-            <span style={{ fontSize: V.chipFlagPx, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
-            <span style={{ fontSize: V.chipNamePx, fontWeight: 500, color: '#374151', lineHeight: 1 }}>
+            <span style={{ fontSize: V_CHIP_F, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
+            <span style={{ fontSize: V_CHIP_N, fontWeight: 500, color: '#374151', lineHeight: 1 }}>
               {getCountryName(slug)}
             </span>
           </div>
         ))}
       </div>
 
-      {/* 5 ── User name ──────────────────────────────────────────────── */}
+      {/* 5 ── Footer: name + mint underline ──────────────────────── */}
       <div>
         {displayName && (
-          <div style={{ fontSize: V.nameFont, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>
-            {displayName}
-          </div>
+          <>
+            <div style={{ fontSize: 36, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>
+              {displayName}
+            </div>
+            <div style={{ height: 2.5, background: '#2DBF8A', borderRadius: 2, marginTop: 12, width: '40%' }} />
+          </>
         )}
       </div>
     </div>
@@ -306,30 +361,12 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
 
   // ─────────────────────────────────────────────────────────────────────────
   // HORIZONTAL — 1200 × 675
-  //   Left 56 %: map (672px)   Right 44 %: stats panel (528px)
-  //   Right panel uses same section order with sizes scaled to ~55 % of Stories
+  //   Left 56 %: map (672 × 675)     Right 44 %: stats panel (528 × 675)
   // ─────────────────────────────────────────────────────────────────────────
-  const mapColW = 672
-  const panelW  = 1200 - mapColW  // 528px
-
-  const H = {
-    padV: 44,
-    padH: 40,
-    numFont: 100,
-    slash195Font: 30,
-    labelFont: 10,
-    labelSpacing: '2.5px',
-    cardW: 176,
-    cardNumFont: 40,
-    cardLabelFont: 9,
-    chipFlagPx: 16,
-    chipNamePx: 12,
-    chipPadH: 12,
-    chipPadV: 7,
-    chipGap: 7,
-    chipMaxH: 102,  // 3 rows: 3×(7+16+7) + 2×7 = 3×30 + 14 = 104
-    nameFont: 18,
-  } as const
+  const H_MAP_W = 672
+  const H_PAN_W = 1200 - H_MAP_W   // 528
+  const H_PAD_H = 40
+  const H_PAD_V = 40
 
   const horizCard = (
     <div style={{
@@ -338,24 +375,23 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       display: 'flex', overflow: 'hidden',
       fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
     }}>
-
       {/* Left: full-height map */}
-      <div style={{ width: mapColW, flexShrink: 0, overflow: 'hidden', background: '#F0FAF6' }}>
+      <div style={{ width: H_MAP_W, flexShrink: 0, overflow: 'hidden', background: '#F0FAF6' }}>
         {renderMap && topoData
-          ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs} width={mapColW} height={675} scale={115} />
-          : <div style={{ width: mapColW, height: 675, background: '#D1D5DB' }} />
+          ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs}
+              width={H_MAP_W} height={675} scale={112} />
+          : <div style={{ width: H_MAP_W, height: 675, background: '#C8CCD6' }} />
         }
       </div>
 
       {/* Right: stats panel */}
       <div style={{
-        width: panelW,
+        width: H_PAN_W,
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        padding: `${H.padV}px ${H.padH}px`,
+        padding: `${H_PAD_V}px ${H_PAD_H}px`,
         boxSizing: 'border-box',
         borderLeft: '1px solid #E5E7EB',
       }}>
-
         {/* Visato + line */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <span style={{
@@ -367,77 +403,65 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
           <div style={{ flex: 1, height: 2, background: '#2DBF8A', borderRadius: 1 }} />
         </div>
 
-        {/* Stats */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{
-                fontSize: H.numFont, fontWeight: 900, color: '#2DBF8A',
-                lineHeight: 0.88, letterSpacing: '-0.06em',
-              }}>
-                {uniqueCountries}
-              </span>
-              <span style={{ fontSize: H.slash195Font, color: '#6B7280', fontWeight: 600, lineHeight: 1 }}>
-                /195
-              </span>
-            </div>
-            <div style={{
-              fontSize: H.labelFont, color: '#6B7280', fontWeight: 700,
-              textTransform: 'uppercase' as const, letterSpacing: H.labelSpacing,
-              marginTop: 10, lineHeight: 1.3,
+        {/* Stats: big number + two mini-cards */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
+          {/* Left: number + /195 column */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+            <span style={{
+              fontSize: 96, fontWeight: 900, color: '#2DBF8A',
+              lineHeight: 1, letterSpacing: '-0.06em', flexShrink: 0,
             }}>
-              {str.countriesLabel}
+              {uniqueCountries}
+            </span>
+            <div style={{ paddingBottom: 5 }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: '#6B7280', lineHeight: 1.1 }}>
+                /195
+              </div>
+              <div style={{
+                fontSize: 9, fontWeight: 700, color: '#6B7280',
+                textTransform: 'uppercase' as const, letterSpacing: '2.5px',
+                lineHeight: 1.4, marginTop: 4,
+              }}>
+                <div>{str.countriesLine1}</div>
+                <div>{str.countriesLine2}</div>
+              </div>
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: H.cardW }}>
-            {[
-              { value: totalDays,    label: str.daysLabel  },
-              { value: trips.length, label: str.tripsLabel },
-            ].map(({ value, label }) => (
-              <div key={label} style={{ background: '#E8F5F0', borderRadius: 12, padding: '14px 18px' }}>
-                <div style={{
-                  fontSize: H.cardNumFont, fontWeight: 900, color: '#2DBF8A',
-                  lineHeight: 1, letterSpacing: '-0.04em',
-                }}>
-                  {value}
-                </div>
-                <div style={{
-                  fontSize: H.cardLabelFont, color: '#1A7A59', fontWeight: 700,
-                  textTransform: 'uppercase' as const, letterSpacing: '1.5px',
-                  marginTop: 6, lineHeight: 1.3,
-                }}>
-                  {label}
-                </div>
-              </div>
-            ))}
+          {/* Right: two mini-cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0, width: 168 }}>
+            {miniCard(totalDays,    str.daysLine1,  str.daysLine2,  36, 9, 14, 14, 12)}
+            {miniCard(trips.length, str.tripsLine1, str.tripsLine2, 36, 9, 14, 14, 12)}
           </div>
         </div>
 
-        {/* Country chips */}
+        {/* Chips */}
         <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: H.chipGap,
-          maxHeight: H.chipMaxH, overflow: 'hidden', alignContent: 'flex-start',
+          display: 'flex', flexWrap: 'wrap', gap: 7,
+          maxHeight: 96, overflow: 'hidden', alignContent: 'flex-start',
         }}>
           {visitedSlugsArr.map(slug => (
             <div key={slug} style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: '#F3F4F6', borderRadius: 999,
-              padding: `${H.chipPadV}px ${H.chipPadH}px`, flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: 5,
+              background: '#F0F1F3', borderRadius: 999,
+              padding: '6px 12px', flexShrink: 0,
             }}>
-              <span style={{ fontSize: H.chipFlagPx, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
-              <span style={{ fontSize: H.chipNamePx, fontWeight: 500, color: '#374151', lineHeight: 1 }}>
+              <span style={{ fontSize: 14, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: '#374151', lineHeight: 1 }}>
                 {getCountryName(slug)}
               </span>
             </div>
           ))}
         </div>
 
-        {/* User name */}
+        {/* Name + underline */}
         <div>
           {displayName && (
-            <div style={{ fontSize: H.nameFont, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>
-              {displayName}
-            </div>
+            <>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>
+                {displayName}
+              </div>
+              <div style={{ height: 2, background: '#2DBF8A', borderRadius: 1, marginTop: 6, width: '40%' }} />
+            </>
           )}
         </div>
       </div>
