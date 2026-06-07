@@ -235,7 +235,6 @@ export default function MapPage({ trips, user }: Props) {
   const [viewMode, setViewMode]   = useState<ViewMode>('globe')
   const [oceanDataUrl, setOceanDataUrl] = useState('')
   const [shareOpen, setShareOpen] = useState(false)
-  const [expandedContinents, setExpandedContinents] = useState<Set<string>>(new Set())
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768)
 
   // ── Flat-map state ──────────────────────────────────────────────────
