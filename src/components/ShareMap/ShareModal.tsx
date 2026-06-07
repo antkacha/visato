@@ -250,7 +250,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       width: 1080, height: 1350,
       background: '#FFFFFF',
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      padding: '60px 72px 60px 72px',
+      padding: '60px 72px',
       boxSizing: 'border-box',
       fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
     }}>
@@ -272,8 +272,8 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       </div>
 
       {/* 3 — Stats row */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', padding: `0 72px`, gap: 24 }}>
-        <div style={{ flex: 1, paddingTop: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 36 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <span style={{ fontSize: V_NUM, fontWeight: 900, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.05em' }}>
               {uniqueCountries}
@@ -284,21 +284,20 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             {str.countriesLine1} {str.countriesLine2}
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0, width: 280 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flexShrink: 0, width: 240 }}>
           {([
             { value: totalDays,    l1: str.daysLine1,  l2: str.daysLine2  },
             { value: trips.length, l1: str.tripsLine1, l2: str.tripsLine2 },
           ] as { value: number; l1: string; l2: string }[]).map(({ value, l1, l2 }) => (
             <div key={l1} style={{
-              background: '#F0FAF6',
-              borderRadius: 36,
-              padding: '24px 28px',
+              background: '#F0FAF6', borderRadius: 28,
+              padding: '28px 20px',
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
               textAlign: 'center' as const,
             }}>
               <div style={{ fontSize: V_CARD_N, fontWeight: 800, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</div>
-              <div style={{ fontSize: V_CARD_L, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase' as const, letterSpacing: '5.5px', lineHeight: 1.3, marginTop: 8, whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: V_CARD_L, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase' as const, letterSpacing: '4px', lineHeight: 1.3, marginTop: 10, whiteSpace: 'nowrap' as const }}>
                 {l1}{l2 && ` ${l2}`}
               </div>
             </div>
