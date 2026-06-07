@@ -250,12 +250,12 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       width: 1080, height: 1350,
       background: '#FFFFFF',
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      padding: '60px 72px',
+      padding: '60px 72px 60px 72px',
       boxSizing: 'border-box',
       fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
     }}>
 
-      {/* 1 ── Header: "Visato" + full-width green line ─────────── */}
+      {/* 1 — Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         <span style={{ fontSize: 54, fontWeight: 800, color: '#2DBF8A', letterSpacing: '-0.02em', lineHeight: 1, flexShrink: 0 }}>
           Visato
@@ -263,7 +263,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         <div style={{ flex: 1, height: 3, background: '#2DBF8A', borderRadius: 2 }} />
       </div>
 
-      {/* 2 ── World map — mint bg, rounded ──────────────────────── */}
+      {/* 2 — Map */}
       <div style={{ overflow: 'hidden', background: '#F0FAF6', height: V_MAP_H, flexShrink: 0, borderRadius: 36 }}>
         {renderMap && topoData
           ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs} width={V_MAP_W} height={V_MAP_H} scale={148} />
@@ -271,10 +271,9 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         }
       </div>
 
-      {/* 3 ── Stats row ─────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24 }}>
-        {/* Left: giant number + /195 inline at baseline, label below */}
-        <div style={{ flex: 1 }}>
+      {/* 3 — Stats row */}
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 24 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <span style={{ fontSize: V_NUM, fontWeight: 900, color: '#2DBF8A', lineHeight: 0.85, letterSpacing: '-0.05em' }}>
               {uniqueCountries}
@@ -285,7 +284,6 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             {str.countriesLine1} {str.countriesLine2}
           </div>
         </div>
-        {/* Right: two stacked mini-cards, left-radius only (bleed to card right edge) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0, marginRight: -72 }}>
           {([
             { value: totalDays,    l1: str.daysLine1,  l2: str.daysLine2  },
@@ -293,7 +291,8 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
           ] as { value: number; l1: string; l2: string }[]).map(({ value, l1, l2 }) => (
             <div key={l1} style={{
               background: '#F0FAF6', borderRadius: '36px 0 0 36px',
-              padding: '24px 104px 24px 28px', textAlign: 'right' as const,
+              padding: '24px 104px 24px 36px', textAlign: 'right' as const,
+              minWidth: 280,
             }}>
               <div style={{ fontSize: V_CARD_N, fontWeight: 800, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</div>
               <div style={{ fontSize: V_CARD_L, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase' as const, letterSpacing: '5.5px', lineHeight: 1.3, marginTop: 8 }}>
@@ -304,15 +303,14 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         </div>
       </div>
 
-      {/* 4 ── Country pills — adapts by count ──────────────────── */}
+      {/* 4 — Country pills */}
       {fewCountries ? (
-        // 1–2 countries: large pills
         <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 20 }}>
           {visitedSlugsArr.map(slug => (
             <div key={slug} style={{
               display: 'flex', alignItems: 'center', gap: 18,
               background: '#F5F5F5', borderRadius: 72,
-              padding: '18px 50px 18px 28px', flexShrink: 0,
+              padding: '18px 50px 18px 28px',
             }}>
               <span style={{ fontSize: 60, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
               <span style={{ fontSize: 44, fontWeight: 600, color: '#374151', lineHeight: 1 }}>{getCountryName(slug)}</span>
@@ -320,13 +318,12 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
           ))}
         </div>
       ) : (
-        // 3+ countries: small pills, max 12 + overflow indicator
         <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 16 }}>
           {visitedSlugsArr.slice(0, 12).map(slug => (
             <div key={slug} style={{
               display: 'flex', alignItems: 'center', gap: 14,
               background: '#F5F5F5', borderRadius: 72,
-              padding: '16px 30px 16px 22px', flexShrink: 0,
+              padding: '16px 30px 16px 22px',
             }}>
               <span style={{ fontSize: 36, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
               <span style={{ fontSize: 28, fontWeight: 500, color: '#6B7280', lineHeight: 1 }}>{getCountryName(slug)}</span>
@@ -338,7 +335,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         </div>
       )}
 
-      {/* 5 ── Extra stats row — shown only when < 3 countries ──── */}
+      {/* 5 — Extra stats (only when < 3 countries) */}
       {fewCountries && (
         <div style={{ display: 'flex', gap: 20 }}>
           {([
@@ -352,7 +349,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
               padding: '36px 40px',
             }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: 80, fontWeight: 800, color: '#1F2937', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</span>
+                <span style={{ fontSize: 80, fontWeight: 800, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</span>
                 {unit && <span style={{ fontSize: 26, fontWeight: 600, color: '#2DBF8A', lineHeight: 1 }}>{unit}</span>}
               </div>
               <div style={{ fontSize: 22, fontWeight: 500, color: '#9CA3AF', textTransform: 'uppercase' as const, letterSpacing: '6px', lineHeight: 1.4, marginTop: 10 }}>{label}</div>
@@ -361,13 +358,14 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         </div>
       )}
 
-      {/* 6 ── Footer: low-opacity green line above, then name ──── */}
+      {/* 6 — Footer */}
       <div>
         <div style={{ height: 4, background: '#2DBF8A', opacity: 0.4, borderRadius: 2, marginBottom: 18 }} />
         {displayName && (
           <div style={{ fontSize: 48, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>{displayName}</div>
         )}
       </div>
+
     </div>
   )
 
