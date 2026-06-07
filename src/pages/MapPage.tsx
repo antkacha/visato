@@ -200,6 +200,7 @@ export default function MapPage({ trips, user }: Props) {
   const [flatTooltip, setFlatTooltip]   = useState<{ x: number; y: number; slug: string } | null>(null)
   const [globeTooltip, setGlobeTooltip] = useState<{ x: number; y: number; slug: string } | null>(null)
   const globeMouseRef    = useRef({ x: 0, y: 0 })
+  const globeResumeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const [isButtonZooming, setIsButtonZooming] = useState(false)
   const btnZoomTimer     = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
@@ -267,12 +268,12 @@ export default function MapPage({ trips, user }: Props) {
     const ctrl = g.controls()
     ctrl.autoRotate = true
     ctrl.autoRotateSpeed = 0.4
-    let timer: ReturnType<typeof setTimeout>
-    ctrl.addEventListener('start', () => { ctrl.autoRotate = false; clearTimeout(timer) })
-    ctrl.addEventListener('end', () => {
-      if (viewMode === 'globe') timer = setTimeout(() => { ctrl.autoRotate = true }, 2000)
+    // Drag start stops rotation; resume is driven by mouseleave (not drag end)
+    ctrl.addEventListener('start', () => {
+      ctrl.autoRotate = false
+      clearTimeout(globeResumeTimer.current)
     })
-  }, [applyGlobeMaterial, viewMode])
+  }, [applyGlobeMaterial])
 
   useEffect(() => {
     const globe = globeRef.current
@@ -287,8 +288,9 @@ export default function MapPage({ trips, user }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme])
 
-  // Stop/start globe rotation when view mode changes
+  // Stop/start globe rotation when view mode changes; cancel any pending resume timer
   useEffect(() => {
+    clearTimeout(globeResumeTimer.current)
     const g = globeRef.current as any
     if (!g) return
     try {
@@ -604,12 +606,22 @@ export default function MapPage({ trips, user }: Props) {
           <div
             style={{ filter: colors.globeShadow, overflow: 'hidden' }}
             onWheel={e => e.preventDefault()}
+            onMouseEnter={() => {
+              clearTimeout(globeResumeTimer.current)
+              try { (globeRef.current as any)?.controls().autoRotate = false } catch (_) {}
+            }}
             onMouseMove={e => {
               globeMouseRef.current = { x: e.clientX, y: e.clientY }
-              // Keep tooltip position in sync while moving over the same country
               setGlobeTooltip(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)
             }}
-            onMouseLeave={() => { setGlobeTooltip(null); setHoveredId(null) }}
+            onMouseLeave={() => {
+              setGlobeTooltip(null)
+              setHoveredId(null)
+              clearTimeout(globeResumeTimer.current)
+              globeResumeTimer.current = setTimeout(() => {
+                try { (globeRef.current as any)?.controls().autoRotate = true } catch (_) {}
+              }, 2000)
+            }}
           >
             <Globe
               ref={globeRef}
