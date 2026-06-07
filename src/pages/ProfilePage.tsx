@@ -229,11 +229,11 @@ export default function ProfilePage({ user, trips }: Props) {
   ]
 
   return (
-    <div style={{ background: 'var(--color-section)', minHeight: 'calc(100dvh - 56px)', padding: '2rem 1.25rem' }}>
-      <div style={{ maxWidth: '44rem', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ background: 'var(--color-section)', minHeight: 'calc(100dvh - 56px)', padding: 'clamp(1rem, 4vw, 2rem) clamp(0.75rem, 4vw, 1.25rem)' }}>
+      <div style={{ maxWidth: '44rem', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'clamp(1.25rem, 4vw, 2rem)' }}>
 
         {/* ── User header — no card, bare layout ────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 'clamp(0.75rem, 3vw, 1.5rem)' }}>
 
           {/* Avatar + "+" overlay */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -277,7 +277,7 @@ export default function ProfilePage({ user, trips }: Props) {
           {/* Name / email / member since — shows savedName, updates on save */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-              fontSize: '1.375rem', fontWeight: 800, color: 'var(--color-heading)',
+              fontSize: 'clamp(1.125rem, 4vw, 1.375rem)', fontWeight: 800, color: 'var(--color-heading)',
               lineHeight: 1.2, marginBottom: '0.25rem',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
@@ -362,7 +362,7 @@ export default function ProfilePage({ user, trips }: Props) {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem' }}>
+          <div className="grid grid-cols-3 sm:grid-cols-5" style={{ gap: '0.5rem' }}>
             {previewAchievements.map((a) => {
               const colors = ACHIEVEMENT_COLORS[a.color]
               return (

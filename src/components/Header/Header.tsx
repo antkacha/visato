@@ -23,7 +23,7 @@ const THEME_ICONS: Record<Theme, string> = { light: '☀️', dark: '🌙' }
 const THEME_CYCLE: Theme[] = ['light', 'dark']
 
 const iconBtn: React.CSSProperties = {
-  width: '2rem', height: '2rem', borderRadius: '0.5rem',
+  width: '2.75rem', height: '2.75rem', borderRadius: '0.5rem',
   background: 'transparent', border: 'none',
   cursor: 'pointer', fontSize: '1rem',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -57,7 +57,7 @@ export default function Header({
       position: 'sticky', top: 0, zIndex: 50,
     }}>
       <div style={{
-        maxWidth: '80rem', margin: '0 auto', padding: '0 1.25rem',
+        maxWidth: '80rem', margin: '0 auto', padding: '0 clamp(0.75rem, 3vw, 1.25rem)',
         height: '56px',
         display: 'grid',
         gridTemplateColumns: '1fr auto 1fr',
@@ -105,7 +105,7 @@ export default function Header({
         </nav>
 
         {/* RIGHT: Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(0.125rem, 1.5vw, 0.5rem)', justifyContent: 'flex-end' }}>
 
           {/* Language switcher — desktop only */}
           <div className="hidden md:flex" style={{ alignItems: 'center', gap: '0', flexShrink: 0 }}>

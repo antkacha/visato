@@ -107,7 +107,7 @@ export default function AchievementsPage({ trips }: Props) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 16 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      style={{ maxWidth: '52rem', margin: '0 auto', padding: '2rem 1.5rem 4rem' }}
+      style={{ maxWidth: '52rem', margin: '0 auto', padding: 'clamp(1rem, 4vw, 2rem) clamp(0.75rem, 4vw, 1.5rem) 4rem' }}
     >
       {/* Back button */}
       <div style={{ marginBottom: '1.5rem' }}>

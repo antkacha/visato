@@ -236,6 +236,7 @@ export default function MapPage({ trips, user }: Props) {
   const [oceanDataUrl, setOceanDataUrl] = useState('')
   const [shareOpen, setShareOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768)
+  const [panelExpanded, setPanelExpanded] = useState(false)
 
   // ── Flat-map state ──────────────────────────────────────────────────
   const mapContainerRef = useRef<HTMLDivElement>(null)
@@ -596,13 +597,15 @@ export default function MapPage({ trips, user }: Props) {
         width: isMobile ? '100%' : '300px',
         minWidth: isMobile ? undefined : '300px',
         height: isMobile ? 'auto' : '100%',
-        maxHeight: isMobile ? '50dvh' : undefined,
+        maxHeight: isMobile ? (panelExpanded ? '50dvh' : '0px') : undefined,
         flexShrink: 0,
         display: 'flex', flexDirection: 'column',
         background: panelBg,
         borderRight: isMobile ? 'none' : `1px solid ${panelBorder}`,
-        borderBottom: isMobile ? `1px solid ${panelBorder}` : 'none',
-        overflowY: 'auto',
+        borderBottom: isMobile && panelExpanded ? `1px solid ${panelBorder}` : 'none',
+        overflowY: isMobile ? (panelExpanded ? 'auto' : 'hidden') : 'auto',
+        overflow: isMobile && !panelExpanded ? 'hidden' : undefined,
+        transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1)',
         scrollBehavior: 'smooth',
         fontFamily: 'Inter, system-ui, sans-serif',
       }}>
@@ -722,6 +725,29 @@ export default function MapPage({ trips, user }: Props) {
         ref={containerRef}
         style={{ flex: 1, overflow: 'hidden', position: 'relative', background: colors.bg }}
       >
+        {/* Mobile: floating panel toggle — bottom-left of map area */}
+        {isMobile && (
+          <button
+            onClick={() => setPanelExpanded(p => !p)}
+            style={{
+              position: 'absolute', bottom: 16, left: 16, zIndex: 20,
+              display: 'flex', alignItems: 'center', gap: '0.375rem',
+              minHeight: 44, padding: '0 1rem',
+              background: panelBg, border: `1px solid ${panelBorder}`,
+              borderRadius: 999, color: panelHeading,
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'Inter, system-ui, sans-serif',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+            }}
+          >
+            <span style={{ color: '#2DBF8A', fontSize: 14 }}>📊</span>
+            {uniqueCountries.length} {t('map.countriesStat')}
+            <span style={{ color: panelMuted, fontSize: 10, marginLeft: 2 }}>
+              {panelExpanded ? '▲' : '▼'}
+            </span>
+          </button>
+        )}
+
         {/* Floating view toggle — top-center of map area */}
         <div style={{
           position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',

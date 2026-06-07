@@ -99,8 +99,9 @@ function App() {
           50%       { transform: rotate(4deg) translateY(-8px); }
         }
         @media (max-width: 640px) {
-          .hero-grid { grid-template-columns: 1fr !important; }
+          .hero-grid { grid-template-columns: 1fr !important; gap: 1.5rem !important; padding: 2.5rem 1rem !important; }
           .hero-visual { display: none !important; }
+          .hero-desc { max-width: 100% !important; }
         }
       `}</style>
 
@@ -110,10 +111,10 @@ function App() {
           style={{
             maxWidth: '60rem',
             margin: '0 auto',
-            padding: '5rem 1.5rem',
+            padding: 'clamp(2.5rem, 8vw, 5rem) clamp(1rem, 4vw, 1.5rem)',
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '3rem',
+            gap: 'clamp(1.5rem, 5vw, 3rem)',
             alignItems: 'center',
           }}
         >
@@ -141,7 +142,7 @@ function App() {
             </h1>
 
             {/* Description */}
-            <p style={{
+            <p className="hero-desc" style={{
               fontSize: '1rem', color: 'var(--color-text-muted)', lineHeight: 1.7,
               margin: '0 0 1.75rem', maxWidth: '380px',
             }}>
@@ -233,7 +234,7 @@ function App() {
 
       {/* ── App content — flows directly from hero ────────────────────── */}
       <main
-        className="max-w-4xl mx-auto px-4 pt-20 pb-20 space-y-6"
+        className="max-w-4xl mx-auto px-4 sm:px-6 pt-10 sm:pt-20 pb-20 space-y-6"
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {...(formOpen ? ({ inert: true } as any) : {})}
       >
