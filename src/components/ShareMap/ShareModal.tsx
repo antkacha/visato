@@ -280,7 +280,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             </span>
             <span style={{ fontSize: V_SLASH, fontWeight: 700, color: '#9CA3AF', lineHeight: 1 }}>/195</span>
           </div>
-          <div style={{ fontSize: V_LBL, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase' as const, letterSpacing: '6px', lineHeight: 1.4, marginTop: 14 }}>
+          <div style={{ fontSize: V_LBL, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase' as const, letterSpacing: '6px', lineHeight: 1.4, marginTop: 40 }}>
             {str.countriesLine1} {str.countriesLine2}
           </div>
         </div>
@@ -312,8 +312,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             <div key={slug} style={{
               display: 'flex', alignItems: 'center', gap: 18,
               background: '#F5F5F5', borderRadius: 72,
-              padding: '18px 50px 18px 28px',
-            }}>
+padding: '20px 36px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18,            }}>
               <span style={{ fontSize: 60, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
               <span style={{ fontSize: 44, fontWeight: 600, color: '#374151', lineHeight: 1 }}>{getCountryName(slug)}</span>
             </div>
@@ -325,7 +324,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             <div key={slug} style={{
               display: 'flex', alignItems: 'center', gap: 14,
               background: '#F5F5F5', borderRadius: 72,
-              padding: '16px 30px 16px 22px',
+              padding: '20px 30px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14,
             }}>
               <span style={{ fontSize: 36, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
               <span style={{ fontSize: 28, fontWeight: 500, color: '#6B7280', lineHeight: 1 }}>{getCountryName(slug)}</span>
