@@ -189,7 +189,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
     radius: number,
   ) => (
     <div style={{
-      background: '#E8F5F0', borderRadius: radius,
+      background: '#E8F8F2', borderRadius: radius,
       padding: `${padV}px ${padH}px`,
       display: 'flex', alignItems: 'center', gap: padH * 0.5,
     }}>
@@ -228,123 +228,144 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   //   justify-content:space-between fills the gaps automatically.
   // ─────────────────────────────────────────────────────────────────────────
 
-  // padH=68 → innerW = 1080-136 = 944
-  // Card is 1080×1350 (4:5). Simple flex-start column, fixed margins, footer anchored with marginTop:auto.
-  const V_MAP_H  = 380
-  const V_MAP_W  = 944
-  const V_NUM    = 160   // big country count — user spec: 160px / weight 900
-  const V_SLASH  = 36    // /195 — user spec: 36px / weight 700
-  const V_LBL    = 11    // COUNTRIES VISITED — user spec: 11px / weight 600 / ls 3px
-  const V_CARD_N = 56    // mini-card number — user spec: 56px / weight 800
-  const V_CARD_L = 10    // mini-card label — user spec: 10px / weight 600 / ls 2px
-  const V_CARD_W = 240   // mini-card width (scaled for smaller canvas)
-  const V_CHIP_F = 18    // chip flag px
-  const V_CHIP_N = 14    // chip name px
-  const V_CHIP_H = 8     // chip padV
-  const V_CHIP_W = 14    // chip padH
-  const V_CHIP_G = 8     // chip gap
-  const V_CHIP_MAX_H = 120  // 3 rows: 3×(8+18+8) + 2×8 = 3×34+16 = 118
+  // Vertical card — adaptive: few countries (<3) vs many countries layout
+  const fewCountries    = uniqueCountries < 3
+  const avgTripDays     = trips.length > 0 ? Math.round(totalDays / trips.length) : 0
+  const longestTripDays = trips.length > 0 ? Math.max(...trips.map(t => tripDays(t))) : 0
+  const firstTripYear   = trips.length > 0
+    ? Math.min(...trips.map(t => parseInt(t.entryDate.slice(0, 4), 10)))
+    : new Date().getFullYear()
+
+  // Canvas px at 1080px wide (≈3.6× the 300px preview spec)
+  const V_MAP_H  = 460   // map height
+  const V_MAP_W  = 936   // 1080 - 2×72 pad
+  const V_NUM    = 200   // country count: weight 900
+  const V_SLASH  = 54    // /195: weight 700
+  const V_LBL    = 22    // COUNTRIES VISITED: weight 600
+  const V_CARD_N = 90    // right mini-card number: weight 800
+  const V_CARD_L = 18    // right mini-card label: weight 600
 
   const vertCard = (
     <div style={{
       width: 1080, height: 1350,
       background: '#FFFFFF',
-      display: 'flex', flexDirection: 'column',
-      padding: '52px 60px 60px',
+      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+      padding: '60px 72px',
       boxSizing: 'border-box',
-      fontFamily: '"Inter", "Arial", "Helvetica Neue", Helvetica, sans-serif',
+      fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
     }}>
 
-      {/* 1 ── Visato + mint line ─────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-        <span style={{
-          fontSize: 28, fontWeight: 800, color: '#2DBF8A',
-          letterSpacing: '-0.01em', lineHeight: 1, flexShrink: 0,
-        }}>
+      {/* 1 ── Header: "Visato" + full-width green line ─────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        <span style={{ fontSize: 54, fontWeight: 800, color: '#2DBF8A', letterSpacing: '-0.02em', lineHeight: 1, flexShrink: 0 }}>
           Visato
         </span>
-        <div style={{ flex: 1, height: 2, background: '#2DBF8A', borderRadius: 2 }} />
+        <div style={{ flex: 1, height: 3, background: '#2DBF8A', borderRadius: 2 }} />
       </div>
 
-      {/* 2 ── World map ──────────────────────────────────────────── */}
-      <div style={{
-        borderRadius: 16, overflow: 'hidden',
-        background: '#F0FAF6', height: V_MAP_H, flexShrink: 0,
-        marginBottom: 32,
-      }}>
+      {/* 2 ── World map — mint bg, rounded ──────────────────────── */}
+      <div style={{ overflow: 'hidden', background: '#F0FAF6', height: V_MAP_H, flexShrink: 0, borderRadius: 36 }}>
         {renderMap && topoData
-          ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs}
-              width={V_MAP_W} height={V_MAP_H} scale={148} />
+          ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs} width={V_MAP_W} height={V_MAP_H} scale={148} />
           : <div style={{ width: V_MAP_W, height: V_MAP_H, background: '#C8CDD5' }} />
         }
       </div>
 
-      {/* 3 ── Stats ─────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, marginBottom: 28 }}>
-
-        {/* Left: big number + /195 column */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-          {/* The giant country count */}
-          <span style={{
-            fontSize: V_NUM, fontWeight: 900, color: '#2DBF8A',
-            lineHeight: 1, letterSpacing: '-0.05em', flexShrink: 0,
-          }}>
-            {uniqueCountries}
-          </span>
-          {/* Column: /195 + label */}
-          <div style={{ paddingBottom: 6 }}>
-            <div style={{
-              fontSize: V_SLASH, fontWeight: 700, color: '#6B7280', lineHeight: 1.1,
-            }}>
-              /195
-            </div>
-            <div style={{
-              fontSize: V_LBL, fontWeight: 600, color: '#6B7280',
-              textTransform: 'uppercase' as const, letterSpacing: '3px',
-              lineHeight: 1.4, marginTop: 4,
-            }}>
-              <div>{str.countriesLine1}</div>
-              <div>{str.countriesLine2}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: two mini-cards (horizontal layout: number left, label right) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: V_CARD_W, flexShrink: 0 }}>
-          {miniCard(totalDays,    str.daysLine1,  str.daysLine2,  V_CARD_N, V_CARD_L, 20, 20, 14)}
-          {miniCard(trips.length, str.tripsLine1, str.tripsLine2, V_CARD_N, V_CARD_L, 20, 20, 14)}
-        </div>
-      </div>
-
-      {/* 4 ── Country chips — max 3 rows ─────────────────────────── */}
-      <div style={{
-        display: 'flex', flexWrap: 'wrap', gap: V_CHIP_G,
-        maxHeight: V_CHIP_MAX_H, overflow: 'hidden', alignContent: 'flex-start',
-        marginBottom: 32,
-      }}>
-        {visitedSlugsArr.map(slug => (
-          <div key={slug} style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            background: '#F0F1F3', borderRadius: 999,
-            padding: `${V_CHIP_H}px ${V_CHIP_W}px`, flexShrink: 0,
-          }}>
-            <span style={{ fontSize: V_CHIP_F, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
-            <span style={{ fontSize: V_CHIP_N, fontWeight: 500, color: '#374151', lineHeight: 1 }}>
-              {getCountryName(slug)}
+      {/* 3 ── Stats row ─────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24 }}>
+        {/* Left: giant number + /195 inline at baseline, label below */}
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+            <span style={{ fontSize: V_NUM, fontWeight: 900, color: '#2DBF8A', lineHeight: 0.85, letterSpacing: '-0.05em' }}>
+              {uniqueCountries}
             </span>
+            <span style={{ fontSize: V_SLASH, fontWeight: 700, color: '#9CA3AF', lineHeight: 1 }}>/195</span>
           </div>
-        ))}
+          <div style={{ fontSize: V_LBL, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase' as const, letterSpacing: '6px', lineHeight: 1.4, marginTop: 14 }}>
+            {str.countriesLine1} {str.countriesLine2}
+          </div>
+        </div>
+        {/* Right: two stacked mini-cards, left-radius only (bleed to card right edge) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0, marginRight: -72 }}>
+          {([
+            { value: totalDays,    l1: str.daysLine1,  l2: str.daysLine2  },
+            { value: trips.length, l1: str.tripsLine1, l2: str.tripsLine2 },
+          ] as { value: number; l1: string; l2: string }[]).map(({ value, l1, l2 }) => (
+            <div key={l1} style={{
+              background: '#F0FAF6', borderRadius: '36px 0 0 36px',
+              padding: '24px 104px 24px 28px', textAlign: 'right' as const,
+            }}>
+              <div style={{ fontSize: V_CARD_N, fontWeight: 800, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</div>
+              <div style={{ fontSize: V_CARD_L, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase' as const, letterSpacing: '5.5px', lineHeight: 1.3, marginTop: 8 }}>
+                {l1}{l2 && ` ${l2}`}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* 5 ── Footer: name + mint underline — anchored to bottom ─── */}
-      <div style={{ marginTop: 'auto' }}>
-        {displayName && (
-          <>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>
-              {displayName}
+      {/* 4 ── Country pills — adapts by count ──────────────────── */}
+      {fewCountries ? (
+        // 1–2 countries: large pills
+        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 20 }}>
+          {visitedSlugsArr.map(slug => (
+            <div key={slug} style={{
+              display: 'flex', alignItems: 'center', gap: 18,
+              background: '#F5F5F5', borderRadius: 72,
+              padding: '18px 50px 18px 28px', flexShrink: 0,
+            }}>
+              <span style={{ fontSize: 60, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
+              <span style={{ fontSize: 44, fontWeight: 600, color: '#374151', lineHeight: 1 }}>{getCountryName(slug)}</span>
             </div>
-            <div style={{ height: 2, background: '#2DBF8A', borderRadius: 2, marginTop: 8, width: '40%' }} />
-          </>
+          ))}
+        </div>
+      ) : (
+        // 3+ countries: small pills, max 12 + overflow indicator
+        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 16 }}>
+          {visitedSlugsArr.slice(0, 12).map(slug => (
+            <div key={slug} style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              background: '#F5F5F5', borderRadius: 72,
+              padding: '16px 30px 16px 22px', flexShrink: 0,
+            }}>
+              <span style={{ fontSize: 36, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
+              <span style={{ fontSize: 28, fontWeight: 500, color: '#6B7280', lineHeight: 1 }}>{getCountryName(slug)}</span>
+            </div>
+          ))}
+          {visitedSlugsArr.length > 12 && (
+            <div style={{ display: 'flex', alignItems: 'center', background: '#F5F5F5', borderRadius: 72, padding: '16px 30px', fontSize: 32, fontWeight: 500, color: '#9CA3AF' }}>···</div>
+          )}
+        </div>
+      )}
+
+      {/* 5 ── Extra stats row — shown only when < 3 countries ──── */}
+      {fewCountries && (
+        <div style={{ display: 'flex', gap: 20 }}>
+          {([
+            { value: avgTripDays,     unit: 'days', label: 'AVG TRIP' },
+            { value: longestTripDays, unit: 'days', label: 'LONGEST'  },
+            { value: firstTripYear,   unit: '',     label: 'SINCE'    },
+          ] as { value: number; unit: string; label: string }[]).map(({ value, unit, label }) => (
+            <div key={label} style={{
+              flex: 1, background: '#FFFFFF',
+              border: '2px solid #E5E7EB', borderRadius: 36,
+              padding: '36px 40px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontSize: 80, fontWeight: 800, color: '#1F2937', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</span>
+                {unit && <span style={{ fontSize: 26, fontWeight: 600, color: '#2DBF8A', lineHeight: 1 }}>{unit}</span>}
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 500, color: '#9CA3AF', textTransform: 'uppercase' as const, letterSpacing: '6px', lineHeight: 1.4, marginTop: 10 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 6 ── Footer: low-opacity green line above, then name ──── */}
+      <div>
+        <div style={{ height: 4, background: '#2DBF8A', opacity: 0.4, borderRadius: 2, marginBottom: 18 }} />
+        {displayName && (
+          <div style={{ fontSize: 48, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>{displayName}</div>
         )}
       </div>
     </div>
