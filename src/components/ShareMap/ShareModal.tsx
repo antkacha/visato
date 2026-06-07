@@ -23,16 +23,17 @@ function tripDays(trip: TripEntry): number {
   return differenceInDays(parseISO(exit), parseISO(trip.entryDate)) + 1
 }
 
-type FormatKey = '4:5' | '16:9'
+type FormatKey = '9:16' | '16:9'
 type CardLang  = 'en' | 'uk' | 'ru'
 type Stage     = 'settings' | 'generating' | 'done' | 'error'
 
+// Stories vertical 1080×1920, landscape horizontal 1200×675
 const FORMATS: Record<FormatKey, { w: number; h: number; label: string }> = {
-  '4:5':  { w: 1080, h: 1350, label: 'Vertical'   },
+  '9:16': { w: 1080, h: 1920, label: 'Stories'    },
   '16:9': { w: 1200, h: 675,  label: 'Horizontal' },
 }
 
-const FORMAT_KEYS: FormatKey[] = ['4:5', '16:9']
+const FORMAT_KEYS: FormatKey[] = ['9:16', '16:9']
 const CARD_LANGS: CardLang[]   = ['en', 'uk', 'ru']
 
 const CARD_STR: Record<CardLang, { countriesLabel: string; daysLabel: string; tripsLabel: string }> = {
@@ -41,18 +42,18 @@ const CARD_STR: Record<CardLang, { countriesLabel: string; daysLabel: string; tr
   ru: { countriesLabel: 'ПОСЕЩЕНО СТРАН',    daysLabel: 'ДНЕЙ ЗА РУБЕЖОМ',  tripsLabel: 'ПОЕЗДОК'    },
 }
 
-// ── Shared flat map ───────────────────────────────────────────────────────────
+// ── Shared flat map ──────────────────────────────────────────────────────────
 function ShareMap({
-  topoData, visitedSlugs, width, height, scale,
+  topoData, visitedSlugs, width, height, scale, bg = '#F0FAF6',
 }: {
   topoData: unknown; visitedSlugs: Set<string>
-  width: number; height: number; scale: number
+  width: number; height: number; scale: number; bg?: string
 }) {
   return (
     <ComposableMap
       width={width} height={height}
       projectionConfig={{ scale, center: [10, 8] }}
-      style={{ display: 'block', width, height, background: '#F0FAF6' }}
+      style={{ display: 'block', width, height, background: bg }}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       {...({} as any)}
     >
@@ -83,7 +84,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   const cardRef = useRef<HTMLDivElement>(null)
 
   const [stage,     setStage]     = useState<Stage>('settings')
-  const [format,    setFormat]    = useState<FormatKey>('4:5')
+  const [format,    setFormat]    = useState<FormatKey>('9:16')
   const [cardLang,  setCardLang]  = useState<CardLang>('en')
   const [dataUrl,   setDataUrl]   = useState<string | null>(null)
   const [blob,      setBlob]      = useState<Blob | null>(null)
@@ -159,72 +160,113 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   const { w, h } = FORMATS[format]
   const str = CARD_STR[cardLang]
 
-  // ── Country chip rows (shared between both card layouts) ──────────────────
-  const chipRows = (maxH: number, flagPx: number, namePx: number, padH: number, padV: number, gap: number) => (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap, maxHeight: maxH, overflow: 'hidden', alignContent: 'flex-start' }}>
-      {visitedSlugsArr.map(slug => (
-        <div key={slug} style={{
-          display: 'flex', alignItems: 'center', gap: Math.round(gap * 0.7),
-          background: '#F3F4F6', borderRadius: 999,
-          padding: `${padV}px ${padH}px`, flexShrink: 0,
-        }}>
-          <span style={{ fontSize: flagPx, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
-          <span style={{ fontSize: namePx, fontWeight: 500, color: '#374151', lineHeight: 1 }}>
-            {getCountryName(slug)}
-          </span>
-        </div>
-      ))}
-    </div>
-  )
+  // ─────────────────────────────────────────────────────────────────────────
+  // VERTICAL — Stories 1080 × 1920
+  //
+  // Proportions derived from the reference:
+  //   header  ≈ 2%   →  ~38px
+  //   gap     ≈ 6%   →  ~115px  (space-between distributes 4 gaps evenly)
+  //   map     ≈ 30%  →  ~576px
+  //   stats   ≈ 27%  →  ~518px  (big number + two side cards)
+  //   chips   ≈ 18%  →  ~346px  capped at 3 rows with overflow:hidden
+  //   name    ≈ 5%   →  ~96px
+  //   padding ≈ 12%  →  top 80px + bottom 80px
+  // ─────────────────────────────────────────────────────────────────────────
+  const V = {
+    padV: 80,  // top / bottom padding
+    padH: 68,  // left / right padding  →  innerW = 1080 - 136 = 944px
+    mapH: 580,
+    mapScale: 152,
+    numFont: 192,   // big country count
+    slash195Font: 58,
+    labelFont: 18,
+    labelSpacing: '3.5px',
+    cardW: 342,     // right mini-card width
+    cardNumFont: 78,
+    cardLabelFont: 15,
+    chipFlagPx: 30,
+    chipNamePx: 22,
+    chipPadH: 20,
+    chipPadV: 11,
+    chipGap: 12,
+    chipMaxH: 186,  // 3 rows: 3×(11+30+11) + 2×12 = 3×52 + 24 = 180 ≈ 186
+    nameFont: 34,
+  } as const
 
-  // ── VERTICAL card  (1080 × 1350) ─────────────────────────────────────────
+  const innerW = 1080 - V.padH * 2  // 944px
+
   const vertCard = (
     <div style={{
-      width: 1080, height: 1350,
+      width: 1080, height: 1920,
       background: '#FFFFFF',
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      padding: '52px 44px 60px',
+      padding: `${V.padV}px ${V.padH}px`,
       boxSizing: 'border-box',
       fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
     }}>
-      {/* Visato + mint line */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        <span style={{ fontSize: 34, fontWeight: 900, color: '#2DBF8A', letterSpacing: '-0.02em', lineHeight: 1, flexShrink: 0 }}>
+
+      {/* 1 ── Visato + mint line ──────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
+        <span style={{
+          fontSize: 46, fontWeight: 900, color: '#2DBF8A',
+          letterSpacing: '-0.02em', lineHeight: 1, flexShrink: 0,
+        }}>
           Visato
         </span>
-        <div style={{ flex: 1, height: 2.5, background: '#2DBF8A', borderRadius: 2 }} />
+        <div style={{ flex: 1, height: 3, background: '#2DBF8A', borderRadius: 2 }} />
       </div>
 
-      {/* World map */}
-      <div style={{ borderRadius: 14, overflow: 'hidden', background: '#F0FAF6', flexShrink: 0, height: 500 }}>
+      {/* 2 ── World map ──────────────────────────────────────────────── */}
+      <div style={{ borderRadius: 20, overflow: 'hidden', background: '#F0FAF6', height: V.mapH, flexShrink: 0 }}>
         {renderMap && topoData
-          ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs} width={992} height={500} scale={158} />
-          : <div style={{ width: 992, height: 500, background: '#D1D5DB' }} />
+          ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs} width={innerW} height={V.mapH} scale={V.mapScale} />
+          : <div style={{ width: innerW, height: V.mapH, background: '#D1D5DB' }} />
         }
       </div>
 
-      {/* Stats: big number left + two cards right */}
+      {/* 3 ── Stats: big country number (left) + two cards (right) ───── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 28 }}>
+
+        {/* Left: huge number */}
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-            <span style={{ fontSize: 124, fontWeight: 900, color: '#2DBF8A', lineHeight: 0.88, letterSpacing: '-0.05em' }}>
+            <span style={{
+              fontSize: V.numFont, fontWeight: 900, color: '#2DBF8A',
+              lineHeight: 0.88, letterSpacing: '-0.06em',
+            }}>
               {uniqueCountries}
             </span>
-            <span style={{ fontSize: 38, color: '#6B7280', fontWeight: 600, lineHeight: 1 }}>
+            <span style={{ fontSize: V.slash195Font, color: '#6B7280', fontWeight: 600, lineHeight: 1 }}>
               /195
             </span>
           </div>
-          <div style={{ fontSize: 13, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '3px', marginTop: 14, lineHeight: 1.3 }}>
+          <div style={{
+            fontSize: V.labelFont, color: '#6B7280', fontWeight: 700,
+            textTransform: 'uppercase' as const, letterSpacing: V.labelSpacing,
+            marginTop: 20, lineHeight: 1.3,
+          }}>
             {str.countriesLabel}
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: 244 }}>
-          {[{ value: totalDays, label: str.daysLabel }, { value: trips.length, label: str.tripsLabel }].map(({ value, label }) => (
-            <div key={label} style={{ background: '#E8F5F0', borderRadius: 14, padding: '18px 22px' }}>
-              <div style={{ fontSize: 50, fontWeight: 900, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.04em' }}>
+
+        {/* Right: days + trips cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: V.cardW }}>
+          {[
+            { value: totalDays,    label: str.daysLabel  },
+            { value: trips.length, label: str.tripsLabel },
+          ].map(({ value, label }) => (
+            <div key={label} style={{ background: '#E8F5F0', borderRadius: 20, padding: '24px 28px' }}>
+              <div style={{
+                fontSize: V.cardNumFont, fontWeight: 900, color: '#2DBF8A',
+                lineHeight: 1, letterSpacing: '-0.04em',
+              }}>
                 {value}
               </div>
-              <div style={{ fontSize: 12, color: '#1A7A59', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '2px', marginTop: 8, lineHeight: 1.3 }}>
+              <div style={{
+                fontSize: V.cardLabelFont, color: '#1A7A59', fontWeight: 700,
+                textTransform: 'uppercase' as const, letterSpacing: '2.5px',
+                marginTop: 10, lineHeight: 1.3,
+              }}>
                 {label}
               </div>
             </div>
@@ -232,13 +274,29 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         </div>
       </div>
 
-      {/* Country chips — max 3 rows */}
-      {chipRows(148, 19, 14, 16, 9, 10)}
+      {/* 4 ── Country chips — max 3 rows ─────────────────────────────── */}
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', gap: V.chipGap,
+        maxHeight: V.chipMaxH, overflow: 'hidden', alignContent: 'flex-start',
+      }}>
+        {visitedSlugsArr.map(slug => (
+          <div key={slug} style={{
+            display: 'flex', alignItems: 'center', gap: 9,
+            background: '#F3F4F6', borderRadius: 999,
+            padding: `${V.chipPadV}px ${V.chipPadH}px`, flexShrink: 0,
+          }}>
+            <span style={{ fontSize: V.chipFlagPx, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
+            <span style={{ fontSize: V.chipNamePx, fontWeight: 500, color: '#374151', lineHeight: 1 }}>
+              {getCountryName(slug)}
+            </span>
+          </div>
+        ))}
+      </div>
 
-      {/* User name */}
+      {/* 5 ── User name ──────────────────────────────────────────────── */}
       <div>
         {displayName && (
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>
+          <div style={{ fontSize: V.nameFont, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>
             {displayName}
           </div>
         )}
@@ -246,9 +304,32 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
     </div>
   )
 
-  // ── HORIZONTAL card  (1200 × 675) ────────────────────────────────────────
-  const mapColW = Math.round(1200 * 0.55)
-  const panelW  = 1200 - mapColW
+  // ─────────────────────────────────────────────────────────────────────────
+  // HORIZONTAL — 1200 × 675
+  //   Left 56 %: map (672px)   Right 44 %: stats panel (528px)
+  //   Right panel uses same section order with sizes scaled to ~55 % of Stories
+  // ─────────────────────────────────────────────────────────────────────────
+  const mapColW = 672
+  const panelW  = 1200 - mapColW  // 528px
+
+  const H = {
+    padV: 44,
+    padH: 40,
+    numFont: 100,
+    slash195Font: 30,
+    labelFont: 10,
+    labelSpacing: '2.5px',
+    cardW: 176,
+    cardNumFont: 40,
+    cardLabelFont: 9,
+    chipFlagPx: 16,
+    chipNamePx: 12,
+    chipPadH: 12,
+    chipPadV: 7,
+    chipGap: 7,
+    chipMaxH: 102,  // 3 rows: 3×(7+16+7) + 2×7 = 3×30 + 14 = 104
+    nameFont: 18,
+  } as const
 
   const horizCard = (
     <div style={{
@@ -257,51 +338,74 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       display: 'flex', overflow: 'hidden',
       fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
     }}>
+
       {/* Left: full-height map */}
       <div style={{ width: mapColW, flexShrink: 0, overflow: 'hidden', background: '#F0FAF6' }}>
         {renderMap && topoData
-          ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs} width={mapColW} height={675} scale={112} />
+          ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs} width={mapColW} height={675} scale={115} />
           : <div style={{ width: mapColW, height: 675, background: '#D1D5DB' }} />
         }
       </div>
 
       {/* Right: stats panel */}
       <div style={{
-        width: panelW, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        padding: '36px 38px 36px',
+        width: panelW,
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        padding: `${H.padV}px ${H.padH}px`,
         boxSizing: 'border-box',
         borderLeft: '1px solid #E5E7EB',
       }}>
+
         {/* Visato + line */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ fontSize: 22, fontWeight: 900, color: '#2DBF8A', letterSpacing: '-0.02em', lineHeight: 1, flexShrink: 0 }}>
+          <span style={{
+            fontSize: 24, fontWeight: 900, color: '#2DBF8A',
+            letterSpacing: '-0.02em', lineHeight: 1, flexShrink: 0,
+          }}>
             Visato
           </span>
           <div style={{ flex: 1, height: 2, background: '#2DBF8A', borderRadius: 1 }} />
         </div>
 
-        {/* Stats: big number + two cards */}
+        {/* Stats */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontSize: 76, fontWeight: 900, color: '#2DBF8A', lineHeight: 0.88, letterSpacing: '-0.05em' }}>
+              <span style={{
+                fontSize: H.numFont, fontWeight: 900, color: '#2DBF8A',
+                lineHeight: 0.88, letterSpacing: '-0.06em',
+              }}>
                 {uniqueCountries}
               </span>
-              <span style={{ fontSize: 22, color: '#6B7280', fontWeight: 600, lineHeight: 1 }}>
+              <span style={{ fontSize: H.slash195Font, color: '#6B7280', fontWeight: 600, lineHeight: 1 }}>
                 /195
               </span>
             </div>
-            <div style={{ fontSize: 10, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '2.5px', marginTop: 8, lineHeight: 1.3 }}>
+            <div style={{
+              fontSize: H.labelFont, color: '#6B7280', fontWeight: 700,
+              textTransform: 'uppercase' as const, letterSpacing: H.labelSpacing,
+              marginTop: 10, lineHeight: 1.3,
+            }}>
               {str.countriesLabel}
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 160 }}>
-            {[{ value: totalDays, label: str.daysLabel }, { value: trips.length, label: str.tripsLabel }].map(({ value, label }) => (
-              <div key={label} style={{ background: '#E8F5F0', borderRadius: 10, padding: '12px 14px' }}>
-                <div style={{ fontSize: 32, fontWeight: 900, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.04em' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: H.cardW }}>
+            {[
+              { value: totalDays,    label: str.daysLabel  },
+              { value: trips.length, label: str.tripsLabel },
+            ].map(({ value, label }) => (
+              <div key={label} style={{ background: '#E8F5F0', borderRadius: 12, padding: '14px 18px' }}>
+                <div style={{
+                  fontSize: H.cardNumFont, fontWeight: 900, color: '#2DBF8A',
+                  lineHeight: 1, letterSpacing: '-0.04em',
+                }}>
                   {value}
                 </div>
-                <div style={{ fontSize: 9, color: '#1A7A59', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '1.5px', marginTop: 5, lineHeight: 1.3 }}>
+                <div style={{
+                  fontSize: H.cardLabelFont, color: '#1A7A59', fontWeight: 700,
+                  textTransform: 'uppercase' as const, letterSpacing: '1.5px',
+                  marginTop: 6, lineHeight: 1.3,
+                }}>
                   {label}
                 </div>
               </div>
@@ -309,13 +413,29 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
           </div>
         </div>
 
-        {/* Country chips — max 3 rows */}
-        {chipRows(108, 14, 11, 11, 6, 7)}
+        {/* Country chips */}
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', gap: H.chipGap,
+          maxHeight: H.chipMaxH, overflow: 'hidden', alignContent: 'flex-start',
+        }}>
+          {visitedSlugsArr.map(slug => (
+            <div key={slug} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: '#F3F4F6', borderRadius: 999,
+              padding: `${H.chipPadV}px ${H.chipPadH}px`, flexShrink: 0,
+            }}>
+              <span style={{ fontSize: H.chipFlagPx, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
+              <span style={{ fontSize: H.chipNamePx, fontWeight: 500, color: '#374151', lineHeight: 1 }}>
+                {getCountryName(slug)}
+              </span>
+            </div>
+          ))}
+        </div>
 
         {/* User name */}
         <div>
           {displayName && (
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>
+            <div style={{ fontSize: H.nameFont, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>
               {displayName}
             </div>
           )}
@@ -324,7 +444,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
     </div>
   )
 
-  const cardInner = format === '4:5' ? vertCard : horizCard
+  const cardInner = format === '9:16' ? vertCard : horizCard
 
   // ── Modal UI ──────────────────────────────────────────────────────────────
   const pillStyle = (active: boolean): React.CSSProperties => ({
@@ -355,7 +475,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
 
   return (
     <>
-      {/* ── Off-screen share card ──────────────────────────────────────── */}
+      {/* ── Off-screen share card ──────────────────────────────────── */}
       <div
         ref={cardRef}
         style={{ position: 'fixed', left: -9999, top: -9999, width: w, height: h, overflow: 'hidden', zIndex: -1 }}
@@ -363,7 +483,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         {cardInner}
       </div>
 
-      {/* ── Modal overlay ──────────────────────────────────────────────── */}
+      {/* ── Modal overlay ──────────────────────────────────────────── */}
       <div
         style={{
           position: 'fixed', inset: 0,
@@ -398,7 +518,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             >✕</button>
           </div>
 
-          {/* ── Settings ────────────────────────────────────────────── */}
+          {/* ── Settings ──────────────────────────────────────────── */}
           {stage === 'settings' && (
             <div>
               <div style={{ marginBottom: '1.125rem' }}>
@@ -445,7 +565,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             </div>
           )}
 
-          {/* ── Generating spinner ──────────────────────────────────── */}
+          {/* ── Generating spinner ────────────────────────────────── */}
           {stage === 'generating' && (
             <div style={{
               width: '100%', aspectRatio: `${w} / ${h}`, maxHeight: '55vh',
@@ -464,7 +584,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             </div>
           )}
 
-          {/* ── Done / Error ─────────────────────────────────────────── */}
+          {/* ── Done / Error ──────────────────────────────────────── */}
           {(stage === 'done' || stage === 'error') && (
             <>
               <div style={{
