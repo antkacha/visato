@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import type { User } from '@supabase/supabase-js'
+import { supabase } from '../../lib/supabase'
 
 interface Props {
   user: User | null
@@ -88,6 +89,19 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [profileDisplayName, setProfileDisplayName] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!user || !supabase) { setProfileDisplayName(null); return }
+    void supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        setProfileDisplayName((data?.display_name as string | null) || null)
+      })
+  }, [user])
 
   useEffect(() => {
     if (!open) return
@@ -129,10 +143,11 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
     )
   }
 
-  const avatar = user.user_metadata?.avatar_url as string | undefined
-  const name   = (user.user_metadata?.full_name ?? user.email ?? '') as string
-  const email  = user.email ?? ''
-  const displayName = name.split(' ')[0]
+  const avatar    = user.user_metadata?.avatar_url as string | undefined
+  const authName  = (user.user_metadata?.full_name ?? user.email ?? '') as string
+  const email     = user.email ?? ''
+  const resolvedName = profileDisplayName || authName
+  const displayName  = resolvedName.split(' ')[0]
 
   return (
     <div ref={containerRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
@@ -151,7 +166,7 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
         {avatar ? (
           <img
             src={avatar}
-            alt={name}
+            alt={resolvedName}
             style={{ width: '1.75rem', height: '1.75rem', borderRadius: '50%', flexShrink: 0 }}
           />
         ) : (
@@ -161,7 +176,7 @@ export default function AuthButton({ user, authLoading, syncing, onSignIn, onSig
             fontSize: '0.7rem', fontWeight: 700, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            {name.charAt(0).toUpperCase()}
+            {resolvedName.charAt(0).toUpperCase()}
           </span>
         )}
 
