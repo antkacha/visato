@@ -298,18 +298,22 @@ export default function ProfilePage({ user, trips }: Props) {
               minHeight: 96,
               boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
               display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center',
-              gap: '0.375rem', textAlign: 'center',
+              alignItems: 'center', justifyContent: 'space-between',
+              textAlign: 'center',
               boxSizing: 'border-box',
             }}>
-              <div style={{
-                fontSize: s.isString ? '1rem' : '1.75rem',
-                fontWeight: 800, color: '#2DBF8A',
-                lineHeight: 1.2, letterSpacing: s.isString ? 0 : '-0.02em',
-                wordBreak: 'break-word',
-              }}>
-                {s.value}
+              {/* Value: centered in the space above the label */}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                <div style={{
+                  fontSize: s.isString ? '1rem' : '1.75rem',
+                  fontWeight: 800, color: '#2DBF8A',
+                  lineHeight: 1.2, letterSpacing: s.isString ? 0 : '-0.02em',
+                  wordBreak: 'break-word',
+                }}>
+                  {s.value}
+                </div>
               </div>
+              {/* Label: always pinned to the same bottom position */}
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.3 }}>
                 {s.label}
               </div>
