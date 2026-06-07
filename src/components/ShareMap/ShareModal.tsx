@@ -6,6 +6,7 @@ import html2canvas from 'html2canvas'
 import type { User } from '@supabase/supabase-js'
 import type { TripEntry } from '../../types'
 import { geoFeatureSlug } from '../../constants/countryIsoMap'
+import { COUNTRY_FLAGS } from '../../constants/countries'
 import { differenceInDays, parseISO } from 'date-fns'
 import { today } from '../../utils/dateUtils'
 
@@ -22,66 +23,59 @@ function tripDays(trip: TripEntry): number {
   return differenceInDays(parseISO(exit), parseISO(trip.entryDate)) + 1
 }
 
-type FormatKey = '16:9' | '1:1' | '4:5' | '9:16'
+type FormatKey = '4:5' | '16:9'
 type CardLang  = 'en' | 'uk' | 'ru'
 type Stage     = 'settings' | 'generating' | 'done' | 'error'
 
-const FORMATS: Record<FormatKey, { w: number; h: number }> = {
-  '16:9': { w: 1200, h: 675  },
-  '1:1':  { w: 1080, h: 1080 },
-  '4:5':  { w: 1080, h: 1350 },
-  '9:16': { w: 1080, h: 1920 },
+const FORMATS: Record<FormatKey, { w: number; h: number; label: string }> = {
+  '4:5':  { w: 1080, h: 1350, label: 'Vertical'   },
+  '16:9': { w: 1200, h: 675,  label: 'Horizontal' },
 }
 
-const FORMAT_KEYS: FormatKey[] = ['16:9', '1:1', '4:5', '9:16']
+const FORMAT_KEYS: FormatKey[] = ['4:5', '16:9']
 const CARD_LANGS: CardLang[]   = ['en', 'uk', 'ru']
 
-// ── Light card design tokens ─────────────────────────────────────────
-const L = {
-  bg:        '#FFFFFF',
-  border:    '#E5E7EB',
-  mint:      '#2DBF8A',
-  dark:      '#1F2937',
-  gray:      '#6B7280',
-  mapBg:     '#FFFFFF',
-  unvisited: '#E5E7EB',
-  visited:   '#2DBF8A',
+const CARD_STR: Record<CardLang, { countriesLabel: string; daysLabel: string; tripsLabel: string }> = {
+  en: { countriesLabel: 'COUNTRIES VISITED', daysLabel: 'DAYS ABROAD',      tripsLabel: 'TRIPS TAKEN' },
+  uk: { countriesLabel: 'ВІДВІДАНО КРАЇН',   daysLabel: 'ДНІВ ЗА КОРДОНОМ', tripsLabel: 'ПОЇЗДОК'    },
+  ru: { countriesLabel: 'ПОСЕЩЕНО СТРАН',    daysLabel: 'ДНЕЙ ЗА РУБЕЖОМ',  tripsLabel: 'ПОЕЗДОК'    },
 }
 
-const LOCALES: Record<CardLang, string> = { en: 'en-US', uk: 'uk-UA', ru: 'ru-RU' }
-
-const CARD_STR: Record<CardLang, {
-  line1: string
-  line2a: string  // dark portion of line 2
-  line2b: string  // mint portion of line 2
-  countriesLabel: string
-  daysLabel: string
-  tripsLabel: string
-}> = {
-  en: {
-    line1: 'The world is big.',
-    line2a: 'My list is ',
-    line2b: 'growing.',
-    countriesLabel: 'Countries Visited',
-    daysLabel: 'Days Abroad',
-    tripsLabel: 'Trips Taken',
-  },
-  uk: {
-    line1: 'Світ великий.',
-    line2a: 'Мій список ',
-    line2b: 'росте.',
-    countriesLabel: 'Відвідано країн',
-    daysLabel: 'Днів за кордоном',
-    tripsLabel: 'Поїздок',
-  },
-  ru: {
-    line1: 'Мир велик.',
-    line2a: 'Мой список ',
-    line2b: 'растёт.',
-    countriesLabel: 'Посещено стран',
-    daysLabel: 'Дней за рубежом',
-    tripsLabel: 'Поездок',
-  },
+// ── Shared flat map ───────────────────────────────────────────────────────────
+function ShareMap({
+  topoData, visitedSlugs, width, height, scale,
+}: {
+  topoData: unknown; visitedSlugs: Set<string>
+  width: number; height: number; scale: number
+}) {
+  return (
+    <ComposableMap
+      width={width} height={height}
+      projectionConfig={{ scale, center: [10, 8] }}
+      style={{ display: 'block', width, height, background: '#F0FAF6' }}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      {...({} as any)}
+    >
+      <Geographies geography={topoData as Record<string, unknown>}>
+        {({ geographies }) =>
+          geographies
+            .filter(geo => String(geo.id) !== '10')
+            .map(geo => {
+              const slug = geoFeatureSlug(geo.id, geo.properties as Record<string, unknown>)
+              const isVisited = !!slug && visitedSlugs.has(slug)
+              return (
+                <Geography
+                  key={geo.rsmKey} geography={geo}
+                  fill={isVisited ? '#2DBF8A' : '#D1D5DB'}
+                  stroke="#FFFFFF" strokeWidth={0.5}
+                  style={{ default: { outline: 'none' }, hover: { outline: 'none' }, pressed: { outline: 'none' } }}
+                />
+              )
+            })
+        }
+      </Geographies>
+    </ComposableMap>
+  )
 }
 
 export default function ShareModal({ isOpen, onClose, trips, topoData, user }: Props) {
@@ -89,18 +83,23 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   const cardRef = useRef<HTMLDivElement>(null)
 
   const [stage,     setStage]     = useState<Stage>('settings')
-  const [format,    setFormat]    = useState<FormatKey>('16:9')
+  const [format,    setFormat]    = useState<FormatKey>('4:5')
   const [cardLang,  setCardLang]  = useState<CardLang>('en')
   const [dataUrl,   setDataUrl]   = useState<string | null>(null)
   const [blob,      setBlob]      = useState<Blob | null>(null)
   const [copied,    setCopied]    = useState(false)
-  // ComposableMap only mounts after Generate is clicked (prevents crash with null topoData)
   const [renderMap, setRenderMap] = useState(false)
 
-  const visitedSlugs    = useMemo(() => new Set(trips.map(t => t.country)), [trips])
+  const visitedSlugs    = useMemo(() => new Set(trips.map(tr => tr.country)), [trips])
+  const visitedSlugsArr = useMemo(() => [...visitedSlugs], [visitedSlugs])
   const uniqueCountries = visitedSlugs.size
-  const totalDays       = useMemo(() => trips.reduce((s, t) => s + tripDays(t), 0), [trips])
+  const totalDays       = useMemo(() => trips.reduce((s, tr) => s + tripDays(tr), 0), [trips])
   const displayName     = user?.user_metadata?.full_name as string | undefined
+
+  const getCountryName = useCallback((slug: string): string => {
+    const bundle = i18n.getResourceBundle(cardLang, 'translation') as { countries?: Record<string, string> }
+    return bundle?.countries?.[slug] ?? slug
+  }, [cardLang, i18n])
 
   useEffect(() => {
     if (isOpen) {
@@ -117,13 +116,13 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
     if (!cardRef.current || !topoData) return
     setRenderMap(true)
     setStage('generating')
-    await new Promise(r => setTimeout(r, 1000))
+    await new Promise(r => setTimeout(r, 1200))
     const { w, h } = FORMATS[format]
     try {
       const canvas = await html2canvas(cardRef.current, {
         width: w, height: h, scale: 1,
         useCORS: true, allowTaint: true,
-        logging: false, backgroundColor: L.bg, imageTimeout: 0,
+        logging: false, backgroundColor: '#FFFFFF', imageTimeout: 0,
       })
       const url = canvas.toDataURL('image/png')
       const b   = await new Promise<Blob>((res, rej) =>
@@ -148,9 +147,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
     try {
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
       setCopied(true); setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error('[share] clipboard error:', err)
-    }
+    } catch (err) { console.error('[share] clipboard error:', err) }
   }, [blob])
 
   const backToSettings = useCallback(() => {
@@ -160,264 +157,178 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   if (!isOpen) return null
 
   const { w, h } = FORMATS[format]
-  const str      = CARD_STR[cardLang]
-  const cardDate = new Date().toLocaleDateString(LOCALES[cardLang], { month: 'long', year: 'numeric' })
+  const str = CARD_STR[cardLang]
 
-  // ── Card building helpers (plain functions, NOT React components) ─────
+  // ── Country chip rows (shared between both card layouts) ──────────────────
+  const chipRows = (maxH: number, flagPx: number, namePx: number, padH: number, padV: number, gap: number) => (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap, maxHeight: maxH, overflow: 'hidden', alignContent: 'flex-start' }}>
+      {visitedSlugsArr.map(slug => (
+        <div key={slug} style={{
+          display: 'flex', alignItems: 'center', gap: Math.round(gap * 0.7),
+          background: '#F3F4F6', borderRadius: 999,
+          padding: `${padV}px ${padH}px`, flexShrink: 0,
+        }}>
+          <span style={{ fontSize: flagPx, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
+          <span style={{ fontSize: namePx, fontWeight: 500, color: '#374151', lineHeight: 1 }}>
+            {getCountryName(slug)}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
 
-  // Centered "Visato" text flanked by horizontal rules
-  const brandBar = (padH = 40) => (
-    <div style={{ padding: `40px ${padH}px 20px`, flexShrink: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ flex: 1, height: 1, background: L.border }} />
-        <span style={{ fontSize: 20, fontWeight: 900, color: L.mint, letterSpacing: '-0.02em' }}>
+  // ── VERTICAL card  (1080 × 1350) ─────────────────────────────────────────
+  const vertCard = (
+    <div style={{
+      width: 1080, height: 1350,
+      background: '#FFFFFF',
+      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+      padding: '52px 44px 60px',
+      boxSizing: 'border-box',
+      fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
+    }}>
+      {/* Visato + mint line */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        <span style={{ fontSize: 34, fontWeight: 900, color: '#2DBF8A', letterSpacing: '-0.02em', lineHeight: 1, flexShrink: 0 }}>
           Visato
         </span>
-        <div style={{ flex: 1, height: 1, background: L.border }} />
+        <div style={{ flex: 1, height: 2.5, background: '#2DBF8A', borderRadius: 2 }} />
       </div>
-    </div>
-  )
 
-  // Two-line headline — second line has mint-colored last word
-  const headlineBlock = (padH = 40, fontSize = 48) => (
-    <div style={{ padding: `0 ${padH}px 32px`, flexShrink: 0 }}>
-      <div style={{
-        fontSize, fontWeight: 900, color: L.dark,
-        lineHeight: 1.15, letterSpacing: '-0.03em',
-      }}>
-        {str.line1}
+      {/* World map */}
+      <div style={{ borderRadius: 14, overflow: 'hidden', background: '#F0FAF6', flexShrink: 0, height: 500 }}>
+        {renderMap && topoData
+          ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs} width={992} height={500} scale={158} />
+          : <div style={{ width: 992, height: 500, background: '#D1D5DB' }} />
+        }
       </div>
-      <div style={{
-        fontSize, fontWeight: 900,
-        lineHeight: 1.15, letterSpacing: '-0.03em',
-        marginTop: 6,
-      }}>
-        <span style={{ color: L.dark }}>{str.line2a}</span>
-        <span style={{ color: L.mint }}>{str.line2b}</span>
-      </div>
-    </div>
-  )
 
-  // World map with 24px side padding; placeholder until renderMap is true
-  const mapBlock = (mapH: number, scale: number, innerW = w - 48) => {
-    if (!renderMap || !topoData) {
-      return (
-        <div style={{ padding: '0 24px', flexShrink: 0 }}>
-          <div style={{ height: mapH, background: L.unvisited }} />
+      {/* Stats: big number left + two cards right */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 28 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+            <span style={{ fontSize: 124, fontWeight: 900, color: '#2DBF8A', lineHeight: 0.88, letterSpacing: '-0.05em' }}>
+              {uniqueCountries}
+            </span>
+            <span style={{ fontSize: 38, color: '#6B7280', fontWeight: 600, lineHeight: 1 }}>
+              /195
+            </span>
+          </div>
+          <div style={{ fontSize: 13, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '3px', marginTop: 14, lineHeight: 1.3 }}>
+            {str.countriesLabel}
+          </div>
         </div>
-      )
-    }
-    return (
-      <div style={{ padding: '0 24px', flexShrink: 0 }}>
-        <ComposableMap
-          width={innerW} height={mapH}
-          projectionConfig={{ scale, center: [10, 8] }}
-          style={{ display: 'block', width: innerW, height: mapH, background: L.mapBg }}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          {...({} as any)}
-        >
-          <Geographies geography={topoData as Record<string, unknown>}>
-            {({ geographies }) =>
-              geographies
-                .filter(geo => String(geo.id) !== '10')
-                .map(geo => {
-                  const slug = geoFeatureSlug(geo.id, geo.properties as Record<string, unknown>)
-                  const isVisited = !!slug && visitedSlugs.has(slug)
-                  return (
-                    <Geography
-                      key={geo.rsmKey} geography={geo}
-                      fill={isVisited ? L.visited : L.unvisited}
-                      stroke={L.bg} strokeWidth={0.5}
-                      style={{
-                        default: { outline: 'none' },
-                        hover:   { outline: 'none' },
-                        pressed: { outline: 'none' },
-                      }}
-                    />
-                  )
-                })
-            }
-          </Geographies>
-        </ComposableMap>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: 244 }}>
+          {[{ value: totalDays, label: str.daysLabel }, { value: trips.length, label: str.tripsLabel }].map(({ value, label }) => (
+            <div key={label} style={{ background: '#E8F5F0', borderRadius: 14, padding: '18px 22px' }}>
+              <div style={{ fontSize: 50, fontWeight: 900, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.04em' }}>
+                {value}
+              </div>
+              <div style={{ fontSize: 12, color: '#1A7A59', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '2px', marginTop: 8, lineHeight: 1.3 }}>
+                {label}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    )
-  }
 
-  // Three stats row, left-aligned
-  const statsBlock = (padH = 40, numSize = 72, gap = 44) => {
-    const of195Size = Math.round(numSize * 0.32)
-    return (
-      <div style={{ padding: `32px ${padH}px 32px`, flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap, alignItems: 'flex-start' }}>
-          {/* Countries */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-              <span style={{
-                fontSize: numSize, fontWeight: 900, color: L.mint,
-                lineHeight: 1, letterSpacing: '-0.04em',
-              }}>
+      {/* Country chips — max 3 rows */}
+      {chipRows(148, 19, 14, 16, 9, 10)}
+
+      {/* User name */}
+      <div>
+        {displayName && (
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>
+            {displayName}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  // ── HORIZONTAL card  (1200 × 675) ────────────────────────────────────────
+  const mapColW = Math.round(1200 * 0.55)
+  const panelW  = 1200 - mapColW
+
+  const horizCard = (
+    <div style={{
+      width: 1200, height: 675,
+      background: '#FFFFFF',
+      display: 'flex', overflow: 'hidden',
+      fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
+    }}>
+      {/* Left: full-height map */}
+      <div style={{ width: mapColW, flexShrink: 0, overflow: 'hidden', background: '#F0FAF6' }}>
+        {renderMap && topoData
+          ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs} width={mapColW} height={675} scale={112} />
+          : <div style={{ width: mapColW, height: 675, background: '#D1D5DB' }} />
+        }
+      </div>
+
+      {/* Right: stats panel */}
+      <div style={{
+        width: panelW, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        padding: '36px 38px 36px',
+        boxSizing: 'border-box',
+        borderLeft: '1px solid #E5E7EB',
+      }}>
+        {/* Visato + line */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 22, fontWeight: 900, color: '#2DBF8A', letterSpacing: '-0.02em', lineHeight: 1, flexShrink: 0 }}>
+            Visato
+          </span>
+          <div style={{ flex: 1, height: 2, background: '#2DBF8A', borderRadius: 1 }} />
+        </div>
+
+        {/* Stats: big number + two cards */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ fontSize: 76, fontWeight: 900, color: '#2DBF8A', lineHeight: 0.88, letterSpacing: '-0.05em' }}>
                 {uniqueCountries}
               </span>
-              <span style={{ fontSize: of195Size, color: L.gray, fontWeight: 600 }}>
+              <span style={{ fontSize: 22, color: '#6B7280', fontWeight: 600, lineHeight: 1 }}>
                 /195
               </span>
             </div>
-            <div style={{
-              fontSize: 11, color: L.gray, fontWeight: 700,
-              textTransform: 'uppercase' as const, letterSpacing: '2px', marginTop: 8,
-            }}>
+            <div style={{ fontSize: 10, color: '#6B7280', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '2.5px', marginTop: 8, lineHeight: 1.3 }}>
               {str.countriesLabel}
             </div>
           </div>
-          {/* Days */}
-          <div>
-            <div style={{
-              fontSize: numSize, fontWeight: 900, color: L.mint,
-              lineHeight: 1, letterSpacing: '-0.04em',
-            }}>
-              {totalDays}
-            </div>
-            <div style={{
-              fontSize: 11, color: L.gray, fontWeight: 700,
-              textTransform: 'uppercase' as const, letterSpacing: '2px', marginTop: 8,
-            }}>
-              {str.daysLabel}
-            </div>
-          </div>
-          {/* Trips */}
-          <div>
-            <div style={{
-              fontSize: numSize, fontWeight: 900, color: L.mint,
-              lineHeight: 1, letterSpacing: '-0.04em',
-            }}>
-              {trips.length}
-            </div>
-            <div style={{
-              fontSize: 11, color: L.gray, fontWeight: 700,
-              textTransform: 'uppercase' as const, letterSpacing: '2px', marginTop: 8,
-            }}>
-              {str.tripsLabel}
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 160 }}>
+            {[{ value: totalDays, label: str.daysLabel }, { value: trips.length, label: str.tripsLabel }].map(({ value, label }) => (
+              <div key={label} style={{ background: '#E8F5F0', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontSize: 32, fontWeight: 900, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.04em' }}>
+                  {value}
+                </div>
+                <div style={{ fontSize: 9, color: '#1A7A59', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '1.5px', marginTop: 5, lineHeight: 1.3 }}>
+                  {label}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
-    )
-  }
 
-  // Footer: name + date + visato.app
-  const footerBlock = (padH = 40) => (
-    <div style={{
-      padding: `24px ${padH}px 40px`,
-      borderTop: `1px solid ${L.border}`,
-      display: 'flex', flexDirection: 'column', gap: 6,
-    }}>
-      {displayName && (
-        <div style={{ fontSize: 15, color: L.dark, fontWeight: 500 }}>
-          {displayName}
+        {/* Country chips — max 3 rows */}
+        {chipRows(108, 14, 11, 11, 6, 7)}
+
+        {/* User name */}
+        <div>
+          {displayName && (
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>
+              {displayName}
+            </div>
+          )}
         </div>
-      )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 13, color: L.gray }}>{cardDate}</span>
-        <span style={{ fontSize: 13, color: L.gray, fontWeight: 600, letterSpacing: '0.04em' }}>
-          visato.app
-        </span>
       </div>
     </div>
   )
 
-  // ── Card layouts ──────────────────────────────────────────────────────
-  let cardInner: React.ReactNode
+  const cardInner = format === '4:5' ? vertCard : horizCard
 
-  if (format === '4:5') {
-    // 1080×1350: map = 45% = 608px; space-between fills remaining
-    cardInner = (
-      <>
-        {brandBar(40)}
-        {headlineBlock(40, 48)}
-        {mapBlock(Math.round(h * 0.45), 165)}
-        {statsBlock(40, 72, 44)}
-        {footerBlock(40)}
-      </>
-    )
-
-  } else if (format === '9:16') {
-    // 1080×1920: map = 45% = 864px; space-between distributes gaps evenly
-    cardInner = (
-      <>
-        {brandBar(44)}
-        {headlineBlock(44, 54)}
-        {mapBlock(Math.round(h * 0.45), 175)}
-        {statsBlock(44, 80, 48)}
-        {footerBlock(44)}
-      </>
-    )
-
-  } else if (format === '1:1') {
-    // 1080×1080: map = 45% = 486px
-    cardInner = (
-      <>
-        {brandBar(40)}
-        {headlineBlock(40, 38)}
-        {mapBlock(Math.round(h * 0.45), 155)}
-        {statsBlock(40, 60, 36)}
-        {footerBlock(40)}
-      </>
-    )
-
-  } else {
-    // 16:9 (1200×675): map left column 58% | brand+headline+stats right 42%
-    const mapColW = Math.round(w * 0.58) // 696px
-    const innerMapW = mapColW - 0  // full width in this column (no extra padding)
-    cardInner = (
-      <div style={{ display: 'flex', height: h }}>
-        {/* Left: full-height map */}
-        <div style={{ width: mapColW, flexShrink: 0, overflow: 'hidden', borderRight: `1px solid ${L.border}` }}>
-          {renderMap && topoData ? (
-            <ComposableMap
-              width={innerMapW} height={h}
-              projectionConfig={{ scale: 125, center: [10, 8] }}
-              style={{ display: 'block', width: innerMapW, height: h, background: L.mapBg }}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              {...({} as any)}
-            >
-              <Geographies geography={topoData as Record<string, unknown>}>
-                {({ geographies }) =>
-                  geographies
-                    .filter(geo => String(geo.id) !== '10')
-                    .map(geo => {
-                      const slug = geoFeatureSlug(geo.id, geo.properties as Record<string, unknown>)
-                      const isVisited = !!slug && visitedSlugs.has(slug)
-                      return (
-                        <Geography
-                          key={geo.rsmKey} geography={geo}
-                          fill={isVisited ? L.visited : L.unvisited}
-                          stroke={L.bg} strokeWidth={0.5}
-                          style={{ default: { outline: 'none' }, hover: { outline: 'none' }, pressed: { outline: 'none' } }}
-                        />
-                      )
-                    })
-                }
-              </Geographies>
-            </ComposableMap>
-          ) : (
-            <div style={{ width: mapColW, height: h, background: L.unvisited }} />
-          )}
-        </div>
-
-        {/* Right: brand + headline + stats + footer */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {brandBar(32)}
-          {headlineBlock(32, 34)}
-          {statsBlock(32, 52, 28)}
-          {footerBlock(32)}
-        </div>
-      </div>
-    )
-  }
-
-  // ── Modal UI ──────────────────────────────────────────────────────────
+  // ── Modal UI ──────────────────────────────────────────────────────────────
   const pillStyle = (active: boolean): React.CSSProperties => ({
-    padding: '5px 14px', borderRadius: 999,
+    padding: '6px 16px', borderRadius: 999,
     border: active ? 'none' : '1.5px solid var(--color-border)',
     background: active ? '#2DBF8A' : 'transparent',
     color: active ? '#fff' : 'var(--color-text-muted)',
@@ -444,26 +355,15 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
 
   return (
     <>
-      {/* ── Off-screen share card ─────────────────────────────────────── */}
+      {/* ── Off-screen share card ──────────────────────────────────────── */}
       <div
         ref={cardRef}
-        style={{
-          position: 'fixed', left: -9999, top: -9999,
-          width: w, height: h,
-          background: L.bg,
-          border: `1px solid ${L.border}`,
-          borderRadius: 24,
-          fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
-          overflow: 'hidden',
-          display: 'flex', flexDirection: 'column',
-          justifyContent: 'space-between',
-          zIndex: -1,
-        }}
+        style={{ position: 'fixed', left: -9999, top: -9999, width: w, height: h, overflow: 'hidden', zIndex: -1 }}
       >
         {cardInner}
       </div>
 
-      {/* ── Modal overlay ─────────────────────────────────────────────── */}
+      {/* ── Modal overlay ──────────────────────────────────────────────── */}
       <div
         style={{
           position: 'fixed', inset: 0,
@@ -488,31 +388,26 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
           }}
         >
           {/* Header */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            marginBottom: '1.25rem',
-          }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
             <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-heading)' }}>
               {t('share.title')}
             </span>
             <button
               onClick={onClose}
-              style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                color: 'var(--color-text-muted)', fontSize: '1.25rem',
-                lineHeight: 1, padding: '0.25rem',
-              }}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', fontSize: '1.25rem', lineHeight: 1, padding: '0.25rem' }}
             >✕</button>
           </div>
 
-          {/* ── Settings ──────────────────────────────────────────────── */}
+          {/* ── Settings ────────────────────────────────────────────── */}
           {stage === 'settings' && (
             <div>
               <div style={{ marginBottom: '1.125rem' }}>
                 <div style={sectionLabel}>{t('share.format')}</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {FORMAT_KEYS.map(f => (
-                    <button key={f} onClick={() => setFormat(f)} style={pillStyle(format === f)}>{f}</button>
+                    <button key={f} onClick={() => setFormat(f)} style={pillStyle(format === f)}>
+                      {FORMATS[f].label}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -550,24 +445,18 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             </div>
           )}
 
-          {/* ── Generating spinner ────────────────────────────────────── */}
+          {/* ── Generating spinner ──────────────────────────────────── */}
           {stage === 'generating' && (
             <div style={{
               width: '100%', aspectRatio: `${w} / ${h}`, maxHeight: '55vh',
-              borderRadius: '0.625rem',
-              border: '1px solid var(--color-border)',
+              borderRadius: '0.625rem', border: '1px solid var(--color-border)',
               background: 'var(--color-bg)',
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
             }}>
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 0.85, repeat: Infinity, ease: 'linear' }}
-                style={{
-                  width: 26, height: 26, borderRadius: '50%',
-                  border: '3px solid var(--color-border)',
-                  borderTopColor: '#2DBF8A',
-                }}
+                style={{ width: 26, height: 26, borderRadius: '50%', border: '3px solid var(--color-border)', borderTopColor: '#2DBF8A' }}
               />
               <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>
                 {t('share.generating')}
@@ -575,7 +464,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
             </div>
           )}
 
-          {/* ── Done / Error ──────────────────────────────────────────── */}
+          {/* ── Done / Error ─────────────────────────────────────────── */}
           {(stage === 'done' || stage === 'error') && (
             <>
               <div style={{
@@ -587,8 +476,7 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
                 marginBottom: '1.125rem',
               }}>
                 {stage === 'done' && dataUrl
-                  ? <img src={dataUrl} alt="Share card preview"
-                      style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                  ? <img src={dataUrl} alt="Share card preview" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                   : <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>
                       Could not generate image — please try again
                     </span>
