@@ -344,6 +344,7 @@
   },
   "map": {
     "navLink": "Моя карта",
+    "myMap": "Моя карта",
     "totalCountries": "Посещено стран",
     "totalDays": "Всего дней за рубежом",
     "topCountry": "Чаще всего посещалась",
@@ -357,7 +358,18 @@
     "dayCount_one": "{{count}} день",
     "dayCount_few": "{{count}} дня",
     "dayCount_many": "{{count}} дней",
-    "dayCount_other": "{{count}} дня"
+    "dayCount_other": "{{count}} дня",
+    "countriesStat": "Страны",
+    "continentsStat": "Континенты",
+    "daysStat": "Дней за рубежом",
+    "noVisited": "Поездок пока нет"
+  },
+  "continents": {
+    "europe": "Европа",
+    "asia": "Азия",
+    "americas": "Америка",
+    "africa": "Африка",
+    "oceania": "Океания"
   },
   "nav": {
     "home": "Главная",

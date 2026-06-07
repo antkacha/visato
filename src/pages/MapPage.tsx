@@ -112,6 +112,55 @@ function processWorldFeatures(features: GeoFeature[]): GeoFeature[] {
   return out
 }
 
+// Continent → country slug mapping for the left panel list
+const CONTINENT_COUNTRIES: Record<string, string[]> = {
+  europe: [
+    'albania', 'andorra', 'austria', 'belarus', 'belgium', 'bosnia_and_herzegovina',
+    'bulgaria', 'croatia', 'cyprus', 'czech_republic', 'denmark', 'estonia',
+    'finland', 'france', 'germany', 'greece', 'greenland', 'hungary', 'iceland',
+    'ireland', 'italy', 'kosovo', 'latvia', 'liechtenstein', 'lithuania',
+    'luxembourg', 'malta', 'moldova', 'monaco', 'montenegro', 'netherlands',
+    'north_macedonia', 'norway', 'poland', 'portugal', 'romania', 'russia',
+    'san_marino', 'serbia', 'slovakia', 'slovenia', 'spain', 'sweden',
+    'switzerland', 'ukraine', 'united_kingdom', 'vatican',
+  ],
+  asia: [
+    'afghanistan', 'armenia', 'azerbaijan', 'bahrain', 'bangladesh', 'bhutan',
+    'brunei', 'cambodia', 'china', 'georgia', 'india', 'indonesia', 'iran',
+    'iraq', 'israel', 'japan', 'jordan', 'kazakhstan', 'kuwait', 'kyrgyzstan',
+    'laos', 'lebanon', 'malaysia', 'maldives', 'mongolia', 'myanmar', 'nepal',
+    'north_korea', 'oman', 'pakistan', 'palestine', 'philippines', 'qatar',
+    'saudi_arabia', 'singapore', 'south_korea', 'sri_lanka', 'syria', 'taiwan',
+    'tajikistan', 'thailand', 'timor_leste', 'turkey', 'turkmenistan',
+    'united_arab_emirates', 'uzbekistan', 'vietnam', 'yemen',
+  ],
+  americas: [
+    'antigua_and_barbuda', 'argentina', 'bahamas', 'barbados', 'belize', 'bolivia',
+    'brazil', 'canada', 'chile', 'colombia', 'costa_rica', 'cuba', 'dominica',
+    'dominican_republic', 'ecuador', 'el_salvador', 'grenada', 'guatemala',
+    'guyana', 'haiti', 'honduras', 'jamaica', 'mexico', 'nicaragua', 'panama',
+    'paraguay', 'peru', 'saint_kitts_and_nevis', 'saint_lucia',
+    'saint_vincent_and_the_grenadines', 'suriname', 'trinidad_and_tobago',
+    'united_states', 'uruguay', 'venezuela',
+  ],
+  africa: [
+    'algeria', 'angola', 'benin', 'botswana', 'burkina_faso', 'burundi',
+    'cameroon', 'cape_verde', 'central_african_republic', 'chad', 'comoros',
+    'congo', 'dr_congo', 'djibouti', 'egypt', 'equatorial_guinea', 'eritrea',
+    'eswatini', 'ethiopia', 'gabon', 'gambia', 'ghana', 'guinea', 'guinea_bissau',
+    'ivory_coast', 'kenya', 'lesotho', 'liberia', 'libya', 'madagascar', 'malawi',
+    'mali', 'mauritania', 'mauritius', 'morocco', 'mozambique', 'namibia', 'niger',
+    'nigeria', 'rwanda', 'sao_tome_and_principe', 'senegal', 'seychelles',
+    'sierra_leone', 'somalia', 'south_africa', 'south_sudan', 'sudan', 'tanzania',
+    'togo', 'tunisia', 'uganda', 'zambia', 'zimbabwe',
+  ],
+  oceania: [
+    'australia', 'fiji', 'kiribati', 'marshall_islands', 'micronesia', 'nauru',
+    'new_zealand', 'palau', 'papua_new_guinea', 'samoa', 'solomon_islands',
+    'tonga', 'tuvalu', 'vanuatu',
+  ],
+}
+
 const THEME = {
   dark: {
     bg: '#0c1424',
@@ -155,7 +204,6 @@ const THEME = {
   },
 }
 
-const TOGGLE_H  = 50
 const MIN_SCALE = 1   // no zooming out beyond full world view
 const MAX_SCALE = 8
 
@@ -187,6 +235,8 @@ export default function MapPage({ trips, user }: Props) {
   const [viewMode, setViewMode]   = useState<ViewMode>('globe')
   const [oceanDataUrl, setOceanDataUrl] = useState('')
   const [shareOpen, setShareOpen] = useState(false)
+  const [expandedContinents, setExpandedContinents] = useState<Set<string>>(new Set())
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768)
 
   // ── Flat-map state ──────────────────────────────────────────────────
   const mapContainerRef = useRef<HTMLDivElement>(null)
@@ -410,6 +460,14 @@ export default function MapPage({ trips, user }: Props) {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
   }, [viewMode])
 
+  // ── Mobile breakpoint ───────────────────────────────────────────────
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
   // ── Data / tooltip helpers ──────────────────────────────────────────
   const visitedSlugs = useMemo(() => new Set(trips.map(t => t.country)), [trips])
 
@@ -473,26 +531,16 @@ export default function MapPage({ trips, user }: Props) {
     )
   }
 
-  // ── Stats bar data ──────────────────────────────────────────────────
+  // ── Panel stats ─────────────────────────────────────────────────────
   const uniqueCountries = useMemo(() => [...new Set(trips.map(t => t.country))], [trips])
   const totalDays = useMemo(() => trips.reduce((s, t) => s + tripDays(t), 0), [trips])
-  const topCountry = useMemo(() => {
-    if (!trips.length) return null
-    const byCountry: Record<string, number> = {}
-    for (const t of trips) byCountry[t.country] = (byCountry[t.country] ?? 0) + tripDays(t)
-    return Object.entries(byCountry).sort(([, a], [, b]) => b - a)[0]
-  }, [trips])
-
-  const statsItems = [
-    { label: t('map.totalCountries'), value: uniqueCountries.length },
-    { label: t('map.totalDays'),      value: totalDays },
-    {
-      label: t('map.topCountry'),
-      value: topCountry
-        ? `${COUNTRY_FLAGS[topCountry[0]] ?? ''} ${t(`countries.${topCountry[0]}`, { defaultValue: topCountry[0] })}`
-        : '—',
-    },
-  ]
+  const visitedContinents = useMemo(() => {
+    let count = 0
+    for (const slugs of Object.values(CONTINENT_COUNTRIES)) {
+      if (slugs.some(s => visitedSlugs.has(s))) count++
+    }
+    return count
+  }, [visitedSlugs])
 
   // Zoom toward the center of the map container (used by +/- buttons)
   const zoomAtCenter = useCallback((factor: number) => {
@@ -514,11 +562,22 @@ export default function MapPage({ trips, user }: Props) {
   }, [])
 
   // ── Computed layout ─────────────────────────────────────────────────
-  const globeH = Math.max(dims.h - 120 - TOGGLE_H, 200)
-  // 2D map fills the full container height so there's no dead space on mobile
+  const globeH = Math.max(dims.h, 200)
   const mapH   = globeH
   const toggleBg    = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
   const inactiveClr = theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)'
+  const panelBg     = theme === 'dark' ? '#0c1424' : '#FFFFFF'
+  const panelBorder = theme === 'dark' ? 'rgba(255,255,255,0.08)' : '#E5E7EB'
+  const panelHeading = theme === 'dark' ? '#f1f5f9' : '#111827'
+  const panelMuted   = theme === 'dark' ? '#94a3b8' : '#6B7280'
+
+  const toggleContinentExpand = (key: string) => {
+    setExpandedContinents(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key); else next.add(key)
+      return next
+    })
+  }
 
   const zoomBtnStyle: React.CSSProperties = {
     width: 34, height: 34, borderRadius: 8, border: 'none',
@@ -532,74 +591,180 @@ export default function MapPage({ trips, user }: Props) {
 
   return (
     <div
-      ref={containerRef}
       style={{
         height: 'calc(100dvh - 56px)',
         background: colors.bg,
-        display: 'flex', flexDirection: 'column',
-        overflow: 'hidden', position: 'relative',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        overflow: 'hidden',
+        position: 'relative',
       }}
     >
-      {/* ── Toggle + Share ────────────────────────────────────────── */}
+      {/* ── LEFT PANEL ──────────────────────────────────────────────── */}
       <div style={{
-        height: `${TOGGLE_H}px`, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', flexShrink: 0, padding: '0 1rem',
-        position: 'relative',
+        width: isMobile ? '100%' : '280px',
+        height: isMobile ? 'auto' : '100%',
+        maxHeight: isMobile ? '45dvh' : undefined,
+        flexShrink: 0,
+        display: 'flex', flexDirection: 'column',
+        background: panelBg,
+        borderRight: isMobile ? 'none' : `1px solid ${panelBorder}`,
+        borderBottom: isMobile ? `1px solid ${panelBorder}` : 'none',
+        overflowY: 'auto',
+        fontFamily: 'Inter, system-ui, sans-serif',
       }}>
-        {/* View-mode pill */}
-        <div style={{
-          display: 'inline-flex', background: toggleBg,
-          borderRadius: '999px', padding: '3px', gap: '2px',
-        }}>
-          {(['globe', 'map'] as ViewMode[]).map(mode => {
-            const isActive = viewMode === mode
-            return (
-              <motion.button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                animate={{ backgroundColor: isActive ? '#2DBF8A' : 'rgba(0,0,0,0)', color: isActive ? '#fff' : inactiveClr }}
-                transition={{ duration: 0.22, ease: 'easeInOut' }}
-                style={{
-                  border: 'none', borderRadius: '999px', padding: '6px 18px',
-                  fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-                  fontFamily: 'Inter, system-ui, sans-serif', whiteSpace: 'nowrap', lineHeight: 1.4,
-                }}
-              >
-                {mode === 'globe' ? `🌍 ${t('map.view3d')}` : `🗺️ ${t('map.view2d')}`}
-              </motion.button>
-            )
-          })}
+        {/* Panel header */}
+        <div style={{ padding: '20px 20px 0', flexShrink: 0 }}>
+          {/* Title + Share */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: panelHeading, letterSpacing: '-0.01em' }}>
+              {t('map.myMap')}
+            </h2>
+            <button
+              onClick={() => setShareOpen(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 8,
+                border: '1.5px solid #2DBF8A', background: 'transparent',
+                color: '#2DBF8A', fontSize: 12, fontWeight: 600,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                fontFamily: 'Inter, system-ui, sans-serif',
+              }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+              {t('share.button')}
+            </button>
+          </div>
+
+          {/* Stats row */}
+          <div style={{ display: 'flex', gap: 20, marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.03em' }}>
+                {uniqueCountries.length}
+              </div>
+              <div style={{ fontSize: 11, color: panelMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: 4 }}>
+                {t('map.countriesStat')}
+              </div>
+            </div>
+            <div style={{ width: 1, background: panelBorder, alignSelf: 'stretch' }} />
+            <div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.03em' }}>
+                {visitedContinents}
+              </div>
+              <div style={{ fontSize: 11, color: panelMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: 4 }}>
+                {t('map.continentsStat')}
+              </div>
+            </div>
+            <div style={{ width: 1, background: panelBorder, alignSelf: 'stretch' }} />
+            <div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.03em' }}>
+                {totalDays}
+              </div>
+              <div style={{ fontSize: 11, color: panelMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: 4 }}>
+                {t('map.daysStat')}
+              </div>
+            </div>
+          </div>
+
+          {/* View mode toggle */}
+          <div style={{ display: 'flex', background: toggleBg, borderRadius: 999, padding: 3, marginBottom: 16 }}>
+            {(['globe', 'map'] as ViewMode[]).map(mode => {
+              const isActive = viewMode === mode
+              return (
+                <motion.button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  animate={{ backgroundColor: isActive ? '#2DBF8A' : 'rgba(0,0,0,0)', color: isActive ? '#fff' : inactiveClr }}
+                  transition={{ duration: 0.22, ease: 'easeInOut' }}
+                  style={{
+                    flex: 1, border: 'none', borderRadius: 999, padding: '6px 12px',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    fontFamily: 'Inter, system-ui, sans-serif', whiteSpace: 'nowrap', lineHeight: 1.4,
+                  }}
+                >
+                  {mode === 'globe' ? `🌍 ${t('map.view3d')}` : `🗺️ ${t('map.view2d')}`}
+                </motion.button>
+              )
+            })}
+          </div>
+
+          <div style={{ height: 1, background: panelBorder, marginBottom: 16 }} />
         </div>
 
-        {/* Share button — absolute right */}
-        <button
-          onClick={() => setShareOpen(true)}
-          style={{
-            position: 'absolute', right: '1rem',
-            display: 'flex', alignItems: 'center', gap: '0.3rem',
-            padding: '0.375rem 0.75rem',
-            borderRadius: '0.5rem',
-            border: '1.5px solid #2DBF8A',
-            background: 'transparent',
-            color: '#2DBF8A',
-            fontSize: '0.8125rem', fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-          </svg>
-          <span className="hidden sm:inline">{t('share.button')}</span>
-        </button>
+        {/* Countries by continent — scrollable */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
+          {trips.length === 0 ? (
+            <p style={{ fontSize: 13, color: panelMuted, margin: 0 }}>
+              {t('map.noVisited')}
+            </p>
+          ) : (
+            Object.entries(CONTINENT_COUNTRIES).map(([continentKey, allSlugs]) => {
+              const visited = allSlugs.filter(s => visitedSlugs.has(s))
+              if (visited.length === 0) return null
+              const isExpanded = expandedContinents.has(continentKey)
+              return (
+                <div key={continentKey} style={{ marginBottom: 12 }}>
+                  {/* Continent header — clickable */}
+                  <button
+                    onClick={() => toggleContinentExpand(continentKey)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      width: '100%', padding: '8px 0', background: 'transparent', border: 'none',
+                      cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 700, color: panelHeading, fontFamily: 'Inter, system-ui, sans-serif' }}>
+                      {t(`continents.${continentKey}`)}
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 11, color: panelMuted, fontWeight: 500 }}>
+                        {visited.length}/{allSlugs.length}
+                      </span>
+                      <span style={{ fontSize: 10, color: panelMuted }}>
+                        {isExpanded ? '▾' : '▸'}
+                      </span>
+                    </span>
+                  </button>
+
+                  {/* Expanded country chips */}
+                  {isExpanded && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingBottom: 4 }}>
+                      {visited.map(slug => (
+                        <div
+                          key={slug}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            padding: '4px 9px', borderRadius: 999,
+                            background: 'rgba(45,191,138,0.10)',
+                            border: '1px solid rgba(45,191,138,0.25)',
+                            fontSize: 12, color: theme === 'dark' ? '#2DBF8A' : '#1A7A59',
+                            fontWeight: 500, fontFamily: 'Inter, system-ui, sans-serif',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <span style={{ fontSize: 14, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
+                          <span>{t(`countries.${slug}`, { defaultValue: slug })}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
       </div>
 
-      {/* ── Map area ──────────────────────────────────────────────── */}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+      {/* ── RIGHT SECTION — Globe / 2D Map ──────────────────────────── */}
+      <div
+        ref={containerRef}
+        style={{ flex: 1, overflow: 'hidden', position: 'relative', background: colors.bg }}
+      >
 
         {/* 3D Globe — always mounted to avoid WebGL teardown */}
         {countries.length > 0 ? (
@@ -806,37 +971,6 @@ export default function MapPage({ trips, user }: Props) {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-
-      {/* ── Stats bar ─────────────────────────────────────────────── */}
-      <div style={{
-        height: '120px', background: colors.statBg, backdropFilter: 'blur(12px)',
-        borderTop: `1px solid rgba(255,255,255,0.08)`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: '1px', padding: '0 1rem', flexShrink: 0,
-      }}>
-        {statsItems.map((s, i) => (
-          <div key={i} style={{
-            flex: 1, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', padding: '0.75rem 0.5rem',
-            borderRight: i < statsItems.length - 1
-              ? `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`
-              : 'none',
-          }}>
-            <span style={{
-              fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800,
-              color: '#2DBF8A', lineHeight: 1, letterSpacing: '-0.02em',
-              fontFamily: 'Inter, system-ui, sans-serif',
-              maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{s.value}</span>
-            <span style={{
-              fontSize: 'clamp(0.6875rem, 1.5vw, 0.8125rem)',
-              color: theme === 'dark' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)',
-              marginTop: '0.25rem', textAlign: 'center',
-              fontFamily: 'Inter, system-ui, sans-serif', lineHeight: 1.2,
-            }}>{s.label}</span>
-          </div>
-        ))}
       </div>
 
       {/* ── Share modal ───────────────────────────────────────────── */}

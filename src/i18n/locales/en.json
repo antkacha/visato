@@ -340,6 +340,7 @@
   },
   "map": {
     "navLink": "My Map",
+    "myMap": "My Map",
     "totalCountries": "Countries visited",
     "totalDays": "Total days abroad",
     "topCountry": "Most visited",
@@ -349,7 +350,18 @@
     "tripCount_one": "{{count}} trip",
     "tripCount_other": "{{count}} trips",
     "dayCount_one": "{{count}} day",
-    "dayCount_other": "{{count}} days"
+    "dayCount_other": "{{count}} days",
+    "countriesStat": "Countries",
+    "continentsStat": "Continents",
+    "daysStat": "Days abroad",
+    "noVisited": "No countries visited yet"
+  },
+  "continents": {
+    "europe": "Europe",
+    "asia": "Asia",
+    "americas": "Americas",
+    "africa": "Africa",
+    "oceania": "Oceania"
   },
   "nav": {
     "home": "Home",
