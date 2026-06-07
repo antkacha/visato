@@ -310,9 +310,10 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 20 }}>
           {visitedSlugsArr.map(slug => (
             <div key={slug} style={{
-              display: 'flex', alignItems: 'center', gap: 18,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18,
               background: '#F5F5F5', borderRadius: 72,
-padding: '20px 36px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18,            }}>
+              padding: '20px 36px',
+            }}>
               <span style={{ fontSize: 60, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
               <span style={{ fontSize: 44, fontWeight: 600, color: '#374151', lineHeight: 1 }}>{getCountryName(slug)}</span>
             </div>
@@ -322,9 +323,9 @@ padding: '20px 36px', display: 'flex', alignItems: 'center', justifyContent: 'ce
         <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 16 }}>
           {visitedSlugsArr.slice(0, 12).map(slug => (
             <div key={slug} style={{
-              display: 'flex', alignItems: 'center', gap: 14,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14,
               background: '#F5F5F5', borderRadius: 72,
-              padding: '20px 30px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14,
+              padding: '20px 30px',
             }}>
               <span style={{ fontSize: 36, lineHeight: 1 }}>{COUNTRY_FLAGS[slug] ?? ''}</span>
               <span style={{ fontSize: 28, fontWeight: 500, color: '#6B7280', lineHeight: 1 }}>{getCountryName(slug)}</span>
