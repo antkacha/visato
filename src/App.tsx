@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useTrips } from './hooks/useTrips'
 import { useTheme } from './hooks/useTheme'
@@ -81,10 +82,11 @@ function App() {
         onSignOut={signOut}
       />
 
-      {isMapPage          ? <MapPage trips={trips} user={user} /> :
-       isProfilePage      ? <ProfilePage user={user} trips={trips} /> :
-       isAchievementsPage ? <AchievementsPage trips={trips} /> : (
-      <div style={{ opacity: langFading ? 0 : 1, transition: 'opacity 150ms ease' }}>
+      <AnimatePresence mode="wait">
+      {isMapPage          ? <MapPage key="map" trips={trips} user={user} /> :
+       isProfilePage      ? <ProfilePage key="profile" user={user} trips={trips} /> :
+       isAchievementsPage ? <AchievementsPage key="achievements" trips={trips} /> : (
+      <div key="home" style={{ opacity: langFading ? 0 : 1, transition: 'opacity 150ms ease' }}>
 
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <style>{`
@@ -266,6 +268,7 @@ function App() {
       </footer>
 
       </div>)}
+      </AnimatePresence>
 
       <TripForm
         open={formOpen}
