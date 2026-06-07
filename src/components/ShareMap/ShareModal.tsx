@@ -28,7 +28,7 @@ type CardLang  = 'en' | 'uk' | 'ru'
 type Stage     = 'settings' | 'generating' | 'done' | 'error'
 
 const FORMATS: Record<FormatKey, { w: number; h: number; label: string }> = {
-  '9:16': { w: 1080, h: 1920, label: 'Stories'    },
+  '9:16': { w: 1080, h: 1350, label: 'Vertical'   },
   '16:9': { w: 1200, h: 675,  label: 'Horizontal' },
 }
 
@@ -194,13 +194,13 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       display: 'flex', alignItems: 'center', gap: padH * 0.5,
     }}>
       <span style={{
-        fontSize: numFont, fontWeight: 900, color: '#2DBF8A',
+        fontSize: numFont, fontWeight: 800, color: '#2DBF8A',
         lineHeight: 1, letterSpacing: '-0.04em', flexShrink: 0,
       }}>
         {value}
       </span>
       <div style={{
-        fontSize: labelFont, color: '#6B7280', fontWeight: 700,
+        fontSize: labelFont, color: '#6B7280', fontWeight: 600,
         textTransform: 'uppercase' as const, letterSpacing: '2px', lineHeight: 1.35,
       }}>
         <div>{line1}</div>
@@ -229,49 +229,48 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
   // ─────────────────────────────────────────────────────────────────────────
 
   // padH=68 → innerW = 1080-136 = 944
-  // Simple top-to-bottom flex-start layout, fixed margins between sections.
-  // Footer uses marginTop:auto to anchor at bottom without space-between stretching gaps.
-  const V_MAP_H  = 380   // fixed height; world is centered in mint bg above/below
+  // Card is 1080×1350 (4:5). Simple flex-start column, fixed margins, footer anchored with marginTop:auto.
+  const V_MAP_H  = 380
   const V_MAP_W  = 944
-  const V_NUM    = 192   // big country number (≈96px × 2× canvas scale)
-  const V_SLASH  = 52    // /195 font-size (≈28px × 2×)
-  const V_LBL    = 18    // "COUNTRIES VISITED" (≈10px × 2×), letterSpacing 3.5px
-  const V_CARD_N = 88    // mini-card number (≈48px × 2×) — card h = 2×26+88 = 140
-  const V_CARD_L = 16    // mini-card label (≈10px × 2×)
-  const V_CARD_W = 300   // mini-card width
-  const V_CHIP_F = 24    // chip flag px
-  const V_CHIP_N = 19    // chip name px
-  const V_CHIP_H = 10    // chip padV → chip height = 2×10+24 = 44
-  const V_CHIP_W = 16    // chip padH
-  const V_CHIP_G = 10    // chip gap → 3 rows: 3×44 + 2×10 = 152
-  const V_CHIP_MAX_H = 156
+  const V_NUM    = 160   // big country count — user spec: 160px / weight 900
+  const V_SLASH  = 36    // /195 — user spec: 36px / weight 700
+  const V_LBL    = 11    // COUNTRIES VISITED — user spec: 11px / weight 600 / ls 3px
+  const V_CARD_N = 56    // mini-card number — user spec: 56px / weight 800
+  const V_CARD_L = 10    // mini-card label — user spec: 10px / weight 600 / ls 2px
+  const V_CARD_W = 240   // mini-card width (scaled for smaller canvas)
+  const V_CHIP_F = 18    // chip flag px
+  const V_CHIP_N = 14    // chip name px
+  const V_CHIP_H = 8     // chip padV
+  const V_CHIP_W = 14    // chip padH
+  const V_CHIP_G = 8     // chip gap
+  const V_CHIP_MAX_H = 120  // 3 rows: 3×(8+18+8) + 2×8 = 3×34+16 = 118
 
   const vertCard = (
     <div style={{
-      width: 1080, height: 1920,
+      width: 1080, height: 1350,
       background: '#FFFFFF',
       display: 'flex', flexDirection: 'column',
-      padding: '72px 68px 80px',
+      padding: '52px 60px 60px',
       boxSizing: 'border-box',
-      fontFamily: '"Arial", "Helvetica Neue", Helvetica, sans-serif',
+      fontFamily: '"Inter", "Arial", "Helvetica Neue", Helvetica, sans-serif',
     }}>
 
       {/* 1 ── Visato + mint line ─────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 40 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
         <span style={{
-          fontSize: 48, fontWeight: 900, color: '#2DBF8A',
-          letterSpacing: '-0.02em', lineHeight: 1, flexShrink: 0,
+          fontSize: 28, fontWeight: 800, color: '#2DBF8A',
+          letterSpacing: '-0.01em', lineHeight: 1, flexShrink: 0,
         }}>
           Visato
         </span>
-        <div style={{ flex: 1, height: 2.5, background: '#2DBF8A', borderRadius: 2 }} />
+        <div style={{ flex: 1, height: 2, background: '#2DBF8A', borderRadius: 2 }} />
       </div>
 
       {/* 2 ── World map ──────────────────────────────────────────── */}
       <div style={{
-        borderRadius: 20, overflow: 'hidden',
+        borderRadius: 16, overflow: 'hidden',
         background: '#F0FAF6', height: V_MAP_H, flexShrink: 0,
-        marginBottom: 40,
+        marginBottom: 32,
       }}>
         {renderMap && topoData
           ? <ShareMap topoData={topoData} visitedSlugs={visitedSlugs}
@@ -281,28 +280,28 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       </div>
 
       {/* 3 ── Stats ─────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 28, marginBottom: 36 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, marginBottom: 28 }}>
 
         {/* Left: big number + /195 column */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 16 }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
           {/* The giant country count */}
           <span style={{
             fontSize: V_NUM, fontWeight: 900, color: '#2DBF8A',
-            lineHeight: 1, letterSpacing: '-0.06em', flexShrink: 0,
+            lineHeight: 1, letterSpacing: '-0.05em', flexShrink: 0,
           }}>
             {uniqueCountries}
           </span>
           {/* Column: /195 + label */}
-          <div style={{ paddingBottom: 8 }}>
+          <div style={{ paddingBottom: 6 }}>
             <div style={{
               fontSize: V_SLASH, fontWeight: 700, color: '#6B7280', lineHeight: 1.1,
             }}>
               /195
             </div>
             <div style={{
-              fontSize: V_LBL, fontWeight: 700, color: '#6B7280',
-              textTransform: 'uppercase' as const, letterSpacing: '3.5px',
-              lineHeight: 1.4, marginTop: 6,
+              fontSize: V_LBL, fontWeight: 600, color: '#6B7280',
+              textTransform: 'uppercase' as const, letterSpacing: '3px',
+              lineHeight: 1.4, marginTop: 4,
             }}>
               <div>{str.countriesLine1}</div>
               <div>{str.countriesLine2}</div>
@@ -311,9 +310,9 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
         </div>
 
         {/* Right: two mini-cards (horizontal layout: number left, label right) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: V_CARD_W, flexShrink: 0 }}>
-          {miniCard(totalDays,    str.daysLine1,  str.daysLine2,  V_CARD_N, V_CARD_L, 26, 26, 18)}
-          {miniCard(trips.length, str.tripsLine1, str.tripsLine2, V_CARD_N, V_CARD_L, 26, 26, 18)}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: V_CARD_W, flexShrink: 0 }}>
+          {miniCard(totalDays,    str.daysLine1,  str.daysLine2,  V_CARD_N, V_CARD_L, 20, 20, 14)}
+          {miniCard(trips.length, str.tripsLine1, str.tripsLine2, V_CARD_N, V_CARD_L, 20, 20, 14)}
         </div>
       </div>
 
@@ -341,10 +340,10 @@ export default function ShareModal({ isOpen, onClose, trips, topoData, user }: P
       <div style={{ marginTop: 'auto' }}>
         {displayName && (
           <>
-            <div style={{ fontSize: 36, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>
               {displayName}
             </div>
-            <div style={{ height: 2.5, background: '#2DBF8A', borderRadius: 2, marginTop: 12, width: '40%' }} />
+            <div style={{ height: 2, background: '#2DBF8A', borderRadius: 2, marginTop: 8, width: '40%' }} />
           </>
         )}
       </div>
