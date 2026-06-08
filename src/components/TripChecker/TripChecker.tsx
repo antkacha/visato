@@ -46,7 +46,7 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
   }
 
   return (
-    <section className="glass-card p-5">
+    <section className="glass-card p-5" style={{ overflow: 'hidden' }}>
       <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text)' }}>
         {t('checker.title')}
       </h2>
@@ -65,6 +65,8 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
             onChange={(e) => { setStartDate(e.target.value); setResult(null) }}
             style={{
               width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
               padding: '0.5rem 0.75rem',
               background: 'var(--color-bg)',
               border: '1px solid var(--color-border)',
@@ -85,6 +87,8 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
             onChange={(e) => { setEndDate(e.target.value); setResult(null) }}
             style={{
               width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
               padding: '0.5rem 0.75rem',
               background: 'var(--color-bg)',
               border: '1px solid var(--color-border)',
