@@ -54,8 +54,8 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
         {t('checker.subtitle')}
       </p>
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
-        <div className="flex-1 min-w-0">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-end" style={{ width: '100%', minWidth: 0 }}>
+        <div className="sm:flex-1" style={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
           <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-muted)' }}>
             {t('checker.startDate')}
           </label>
@@ -64,8 +64,11 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
             value={startDate}
             onChange={(e) => { setStartDate(e.target.value); setResult(null) }}
             style={{
+              display: 'block',
               width: '100%',
               minWidth: 0,
+              WebkitAppearance: 'none',
+              appearance: 'none',
               padding: '0.5rem 0.75rem',
               background: 'var(--color-bg)',
               border: '1px solid var(--color-border)',
@@ -75,7 +78,7 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
             }}
           />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="sm:flex-1" style={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
           <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-muted)' }}>
             {t('checker.endDate')}
           </label>
@@ -85,8 +88,11 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
             min={startDate}
             onChange={(e) => { setEndDate(e.target.value); setResult(null) }}
             style={{
+              display: 'block',
               width: '100%',
               minWidth: 0,
+              WebkitAppearance: 'none',
+              appearance: 'none',
               padding: '0.5rem 0.75rem',
               background: 'var(--color-bg)',
               border: '1px solid var(--color-border)',
