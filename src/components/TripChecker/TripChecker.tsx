@@ -55,7 +55,7 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
       </p>
 
       <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-muted)' }}>
             {t('checker.startDate')}
           </label>
@@ -65,8 +65,7 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
             onChange={(e) => { setStartDate(e.target.value); setResult(null) }}
             style={{
               width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
+              minWidth: 0,
               padding: '0.5rem 0.75rem',
               background: 'var(--color-bg)',
               border: '1px solid var(--color-border)',
@@ -76,7 +75,7 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
             }}
           />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-text-muted)' }}>
             {t('checker.endDate')}
           </label>
@@ -87,8 +86,7 @@ export default function TripChecker({ trips, onOpenForm }: Props) {
             onChange={(e) => { setEndDate(e.target.value); setResult(null) }}
             style={{
               width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
+              minWidth: 0,
               padding: '0.5rem 0.75rem',
               background: 'var(--color-bg)',
               border: '1px solid var(--color-border)',
